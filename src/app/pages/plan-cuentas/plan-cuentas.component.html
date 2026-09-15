@@ -1,0 +1,174 @@
+<nb-card>
+    <nb-card-header class="d-flex justify-content-between align-items-center">
+      <div>
+        <h4 class="mb-0">Plan Único de Cuentas (PUC)</h4>
+        <small class="text-muted">Catálogo de cuentas contables de CodeLedger</small>
+      </div>
+      <!-- Botón para abrir modal de Creación -->
+      <button nbButton status="primary" size="medium" (click)="abrirModalCuenta()">
+        <nb-icon icon="plus-outline"></nb-icon> Nueva Cuenta
+      </button>
+    </nb-card-header>
+  
+    <nb-card-body>
+      <!-- Buscador -->
+      <div class="row mb-3">
+        <div class="col-md-6 col-12">
+          <input 
+            nbInput 
+            fullWidth 
+            type="text" 
+            placeholder="Buscar por código, nombre o tipo..." 
+            [(ngModel)]="textoBusqueda"
+            (input)="filtrarCuentas()"
+          />
+        </div>
+      </div>
+  
+      <!-- Tabla Jerárquica -->
+      <div class="table-responsive">
+        <table class="table table-hover table-striped align-middle">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Nombre de la Cuenta</th>
+              <th>Tipo</th>
+              <th class="text-center">Nivel</th>
+              <th class="text-center">Permite Movimiento</th>
+              <th class="text-center">Estado</th>
+              <th class="text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let cuenta of cuentasFiltradas" [class.font-weight-bold]="cuenta.nivel <= 2">
+              <td>
+                <span [style.padding-left.px]="getIndentacion(cuenta.nivel)">
+                  <code>{{ cuenta.codigo }}</code>
+                </span>
+              </td>
+              <td>
+                <span [style.padding-left.px]="getIndentacion(cuenta.nivel)">
+                  {{ cuenta.nombre }}
+                </span>
+              </td>
+              <td>{{ cuenta.tipo }}</td>
+              <td class="text-center">
+                <span class="badge badge-info">Nivel {{ cuenta.nivel }}</span>
+              </td>
+              <td class="text-center">
+                <span 
+                  class="badge" 
+                  [ngClass]="cuenta.permiteMovimiento ? 'badge-success' : 'badge-secondary'">
+                  {{ cuenta.permiteMovimiento ? 'Sí (Auxiliar)' : 'No (Mayor)' }}
+                </span>
+              </td>
+              <td class="text-center">
+                <span 
+                  class="badge" 
+                  [ngClass]="cuenta.estado ? 'badge-primary' : 'badge-danger'">
+                  {{ cuenta.estado ? 'Activo' : 'Inactivo' }}
+                </span>
+              </td>
+              <td class="text-center">
+                <!-- Botón para abrir modal de Edición -->
+                <button nbButton ghost status="info" size="tiny" title="Editar" (click)="abrirModalCuenta(cuenta)">
+                  <nb-icon icon="edit-outline"></nb-icon>
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="cuentasFiltradas.length === 0">
+              <td colspan="7" class="text-center text-muted py-4">
+                No se encontraron cuentas contables que coincidan con la búsqueda.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </nb-card-body>
+  </nb-card>
+  
+  <!-- PLANTILLA DE LA VENTANA MODAL (TEMPLATE) -->
+  <ng-template #dialogCuenta let-data let-ref="dialogRef">
+    <nb-card style="width: 500px; max-width: 90vw;">
+      <nb-card-header class="d-flex justify-content-between align-items-center">
+        <span>{{ cuentaSeleccionada ? 'Editar Cuenta Contable' : 'Nueva Cuenta Contable' }}</span>
+        <button nbButton ghost status="danger" size="tiny" (click)="ref.close()">
+          <nb-icon icon="close-outline"></nb-icon>
+        </button>
+      </nb-card-header>
+  
+      <nb-card-body>
+        <form [formGroup]="formCuenta" (ngSubmit)="guardarCuenta(ref)">
+          <div class="row">
+            
+            <!-- Código -->
+            <div class="col-md-6 mb-3">
+              <label class="label">Código Contable *</label>
+              <input nbInput fullWidth type="text" formControlName="codigo" placeholder="Ej: 110505" />
+              <small class="text-danger" *ngIf="formCuenta.get('codigo')?.touched && formCuenta.get('codigo')?.invalid">
+                El código es obligatorio.
+              </small>
+            </div>
+  
+            <!-- Nombre -->
+            <div class="col-md-6 mb-3">
+              <label class="label">Nombre de la Cuenta *</label>
+              <input nbInput fullWidth type="text" formControlName="nombre" placeholder="Ej: Caja General" />
+              <small class="text-danger" *ngIf="formCuenta.get('nombre')?.touched && formCuenta.get('nombre')?.invalid">
+                El nombre es obligatorio.
+              </small>
+            </div>
+  
+            <!-- Tipo de Cuenta -->
+            <div class="col-md-6 mb-3">
+              <label class="label">Tipo de Cuenta *</label>
+              <nb-select fullWidth formControlName="tipo" placeholder="Seleccione un tipo">
+                <nb-option value="Activo">Activo</nb-option>
+                <nb-option value="Pasivo">Pasivo</nb-option>
+                <nb-option value="Patrimonio">Patrimonio</nb-option>
+                <nb-option value="Ingresos">Ingresos</nb-option>
+                <nb-option value="Gastos">Gastos</nb-option>
+                <nb-option value="Costos">Costos</nb-option>
+              </nb-select>
+            </div>
+  
+            <!-- Nivel -->
+            <div class="col-md-6 mb-3">
+              <label class="label">Nivel Contable *</label>
+              <nb-select fullWidth formControlName="nivel" placeholder="Nivel">
+                <nb-option [value]="1">Nivel 1 (Clase)</nb-option>
+                <nb-option [value]="2">Nivel 2 (Grupo)</nb-option>
+                <nb-option [value]="3">Nivel 3 (Cuenta)</nb-option>
+                <nb-option [value]="4">Nivel 4 (Subcuenta/Auxiliar)</nb-option>
+              </nb-select>
+            </div>
+  
+            <!-- Permite Movimiento (Checkbox) -->
+            <div class="col-md-6 mb-3 d-flex align-items-center">
+              <nb-checkbox formControlName="permiteMovimiento">
+                ¿Es Cuenta Auxiliar? (Afectable)
+              </nb-checkbox>
+            </div>
+  
+            <!-- Estado (Checkbox) -->
+            <div class="col-md-6 mb-3 d-flex align-items-center">
+              <nb-checkbox formControlName="estado">
+                Estado Activo
+              </nb-checkbox>
+            </div>
+  
+          </div>
+  
+          <!-- Botones de Acción -->
+          <div class="d-flex justify-content-end mt-3 gap-2">
+            <button nbButton type="button" status="basic" (click)="ref.close()">
+              Cancelar
+            </button>
+            <button nbButton type="submit" status="success" [disabled]="formCuenta.invalid">
+              Guardar
+            </button>
+          </div>
+        </form>
+      </nb-card-body>
+    </nb-card>
+  </ng-template>
