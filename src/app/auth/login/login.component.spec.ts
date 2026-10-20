@@ -1,50 +1,60 @@
-import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { AuthService } from '../../core/services/auth.service';
+import { of, throwError } from 'rxjs';
 
-@Component({
-  selector: 'app-login',
-  templateUrl: './login.component.html',
-  styleUrls: ['./login.component.scss']
-})
-export class LoginComponent implements OnInit {
-  loginForm!: FormGroup;
-  isLoading = false;
-  errorMessage = '';
+import { LoginComponent } from './login.component';
+import { AuthService } from '../../@core/services/auth.service';
 
-  constructor(
-    private fb: FormBuilder,
-    private authService: AuthService,
-    private router: Router
-  ) {}
+describe('LoginComponent', () => {
+  let fixture: ComponentFixture<LoginComponent>;
+  let component: LoginComponent;
+  let authService: jasmine.SpyObj<AuthService>;
+  let router: jasmine.SpyObj<Router>;
 
-  ngOnInit(): void {
-    this.loginForm = this.fb.group({
-      email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(6)]]
-    });
-  }
+  beforeEach(async () => {
+    authService = jasmine.createSpyObj('AuthService', ['login']);
+    router = jasmine.createSpyObj('Router', ['navigate']);
 
-  onSubmit(): void {
-    if (this.loginForm.invalid) return;
+    await TestBed.configureTestingModule({
+      declarations: [LoginComponent],
+      imports: [ReactiveFormsModule],
+      providers: [
+        { provide: AuthService, useValue: authService },
+        { provide: Router, useValue: router },
+      ],
+    }).compileComponents();
 
-    this.isLoading = true;
-    this.errorMessage = '';
-    
-    const { email, password } = this.loginForm.value;
+    fixture = TestBed.createComponent(LoginComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
 
-    this.authService.login(email, password).subscribe({
-      next: (res) => {
-        // Cuando tengamos el dashboard, redirigiremos allí
-        console.log('Login exitoso', res);
-        this.router.navigate(['/pages/dashboard']); 
-      },
-      error: (err) => {
-        this.isLoading = false;
-        this.errorMessage = err.error?.message || 'Error de conexión con el servidor.';
-      },
-      complete: () => this.isLoading = false
-    });
-  }
-}
+  it('no llama al servicio si el formulario es inválido', () => {
+    component.onSubmit();
+    expect(authService.login).not.toHaveBeenCalled();
+  });
+
+  it('navega al dashboard cuando el login es exitoso', () => {
+    authService.login.and.returnValue(of({
+      token: 't',
+      usuario: { idUsuario: 1, idEmpresa: 1, nombre: 'admin', rol: 'ADMIN' },
+    }));
+    component.loginForm.setValue({ email: 'admin@codeledger.com', password: '123456' });
+
+    component.onSubmit();
+
+    expect(router.navigate).toHaveBeenCalledWith(['/pages/dashboard']);
+    expect(component.isLoading).toBe(false);
+  });
+
+  it('muestra el mensaje de error de la API', () => {
+    authService.login.and.returnValue(throwError({ error: { message: 'Credenciales inválidas' } }));
+    component.loginForm.setValue({ email: 'admin@codeledger.com', password: '123456' });
+
+    component.onSubmit();
+
+    expect(component.errorMessage).toBe('Credenciales inválidas');
+    expect(router.navigate).not.toHaveBeenCalled();
+  });
+});

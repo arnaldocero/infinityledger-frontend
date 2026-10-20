@@ -1,4 +1,9 @@
 table {
+    // El código nunca se parte en dos líneas aunque la columna sea angosta
+    td:first-child {
+      white-space: nowrap;
+    }
+
     code {
       font-weight: bold;
       font-size: 0.9rem;

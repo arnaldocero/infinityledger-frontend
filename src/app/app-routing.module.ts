@@ -3,6 +3,10 @@ import { RouterModule, Routes } from '@angular/router';
 
 const routes: Routes = [
   {
+    path: 'pages',
+    loadChildren: () => import('./pages/pages.module').then(m => m.PagesModule)
+  },
+  {
     path: 'auth',
     loadChildren: () => import('./auth/auth.module').then(m => m.AuthModule)
   },
@@ -10,8 +14,11 @@ const routes: Routes = [
     path: '',
     redirectTo: 'auth',
     pathMatch: 'full'
+  },
+  {
+    path: '**',
+    redirectTo: 'auth'
   }
-  // Aquí posteriormente irán las rutas de tu módulo 'pages' (el dashboard contable)
 ];
 
 @NgModule({

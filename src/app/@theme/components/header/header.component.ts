@@ -1,10 +1,12 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { NbMediaBreakpointsService, NbMenuService, NbSidebarService, NbThemeService } from '@nebular/theme';
-
-import { UserData } from '../../../@core/data/users';
-import { LayoutService } from '../../../@core/utils';
-import { map, takeUntil } from 'rxjs/operators';
+import { filter, map, takeUntil } from 'rxjs/operators';
 import { Subject } from 'rxjs';
+
+import { LayoutService } from '../../../@core/utils';
+import { AuthService, UsuarioSesion } from '../../../@core/services/auth.service';
+
+const USER_MENU_TAG = 'user-menu';
 
 @Component({
   selector: 'ngx-header',
@@ -15,16 +17,16 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   private destroy$: Subject<void> = new Subject<void>();
   userPictureOnly: boolean = false;
-  user: any;
+  user: UsuarioSesion | null = null;
 
   themes = [
     {
       value: 'default',
-      name: 'Light',
+      name: 'Claro',
     },
     {
       value: 'dark',
-      name: 'Dark',
+      name: 'Oscuro',
     },
     {
       value: 'cosmic',
@@ -32,28 +34,33 @@ export class HeaderComponent implements OnInit, OnDestroy {
     },
     {
       value: 'corporate',
-      name: 'Corporate',
+      name: 'Corporativo',
     },
   ];
 
   currentTheme = 'default';
 
-  userMenu = [ { title: 'Profile' }, { title: 'Log out' } ];
+  readonly userMenuTag = USER_MENU_TAG;
+  userMenu = [ { title: 'Cerrar sesión', icon: 'log-out-outline', data: { accion: 'logout' } } ];
 
   constructor(private sidebarService: NbSidebarService,
               private menuService: NbMenuService,
               private themeService: NbThemeService,
-              private userService: UserData,
+              private authService: AuthService,
               private layoutService: LayoutService,
               private breakpointService: NbMediaBreakpointsService) {
   }
 
   ngOnInit() {
     this.currentTheme = this.themeService.currentTheme;
+    this.user = this.authService.getUsuario();
 
-    this.userService.getUsers()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((users: any) => this.user = users.nick);
+    this.menuService.onItemClick()
+      .pipe(
+        filter(({ tag, item }) => tag === USER_MENU_TAG && item.data?.accion === 'logout'),
+        takeUntil(this.destroy$),
+      )
+      .subscribe(() => this.authService.logout());
 
     const { xl } = this.breakpointService.getBreakpointsMap();
     this.themeService.onMediaQueryChange()

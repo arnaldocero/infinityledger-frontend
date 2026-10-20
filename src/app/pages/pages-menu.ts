@@ -1,71 +1,47 @@
 import { NbMenuItem } from '@nebular/theme';
+import { Rol } from '../@core/models/rol.model';
+
+// Roles con acceso a cada sección. pages-routing.module.ts usa estas mismas
+// constantes en `data.roles`, así el menú y los guards no se desalinean.
+export const ROLES_PLAN_CUENTAS: Rol[] = ['ADMIN', 'CONTADOR'];
+export const ROLES_ASIENTOS: Rol[] = ['ADMIN', 'CONTADOR', 'AUXILIAR'];
+export const ROLES_TERCEROS: Rol[] = ['ADMIN', 'CONTADOR', 'AUXILIAR'];
+export const ROLES_USUARIOS: Rol[] = ['ADMIN'];
 
 export const MENU_ITEMS: NbMenuItem[] = [
   {
-    title: 'Dashboard Contable',
+    title: 'Dashboard',
     icon: 'home-outline',
     link: '/pages/dashboard',
     home: true,
   },
   {
-    title: 'CONTABILIDAD',
-    group: true,
-  },
-  {
-    title: 'Plan de Cuentas (PUC)',
-    icon: 'book-open-outline',
+    title: 'Plan de Cuentas',
+    icon: 'book-outline',
     link: '/pages/plan-cuentas',
+    data: { roles: ROLES_PLAN_CUENTAS },
   },
   {
-    title: 'Comprobantes / Asientos',
-    icon: 'file-text-outline',
+    title: 'Asientos Contables',
+    icon: 'edit-2-outline',
     link: '/pages/asientos',
-    children: [
-      {
-        title: 'Ver Asientos',
-        link: '/pages/asientos/listar',
-      },
-      {
-        title: 'Nuevo Asiento',
-        link: '/pages/asientos/crear',
-      },
-    ],
+    data: { roles: ROLES_ASIENTOS },
   },
   {
-    title: 'TERCEROS Y COSTOS',
-    group: true,
-  },
-  {
-    title: 'Terceros (Clientes/Prov)',
+    title: 'Terceros',
     icon: 'people-outline',
     link: '/pages/terceros',
+    data: { roles: ROLES_TERCEROS },
   },
   {
-    title: 'Centros de Costo',
-    icon: 'grid-outline',
-    link: '/pages/centros-costo',
-  },
-  {
-    title: 'GESTIÓN FINANCIERA',
-    group: true,
-  },
-  {
-    title: 'Facturación / Cartera',
-    icon: 'shopping-bag-outline',
-    link: '/pages/facturas',
-  },
-  {
-    title: 'REPORTES Y AUDITORÍA',
-    group: true,
-  },
-  {
-    title: 'Saldos y Balances',
-    icon: 'pie-chart-outline',
-    link: '/pages/reportes',
-  },
-  {
-    title: 'Logs de Auditoría',
-    icon: 'shield-outline',
-    link: '/pages/auditoria',
+    title: 'Administración',
+    icon: 'settings-2-outline',
+    children: [
+      {
+        title: 'Usuarios',
+        link: '/pages/usuarios',
+        data: { roles: ROLES_USUARIOS },
+      },
+    ],
   },
 ];
