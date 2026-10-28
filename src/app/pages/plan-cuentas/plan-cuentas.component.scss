@@ -1,3 +1,14 @@
+// Diálogo de crear/editar: en pantallas bajas el contenido hace scroll y los botones siguen alcanzables
+.dialogo-cuenta {
+  width: 560px;
+  max-width: 90vw;
+  max-height: 90vh;
+
+  nb-card-body {
+    overflow-y: auto;
+  }
+}
+
 table {
     // El código nunca se parte en dos líneas aunque la columna sea angosta
     td:first-child {

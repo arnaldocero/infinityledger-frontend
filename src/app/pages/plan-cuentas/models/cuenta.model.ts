@@ -13,7 +13,7 @@ export type TipoCuenta =
 export type Naturaleza = 'DEBITO' | 'CREDITO';
 
 export interface CuentaContable {
-  idCuenta?: number;
+  idCuenta: number;
   codigo: string;              // Ej: '110505'
   nombreCuenta: string;        // Ej: 'Caja General'
   idCuentaPadre: number | null;

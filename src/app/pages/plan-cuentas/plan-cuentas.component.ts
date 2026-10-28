@@ -1,6 +1,11 @@
-import { Component, OnInit, TemplateRef, ViewChild } from '@angular/core';
+import { Component, OnDestroy, OnInit, TemplateRef, ViewChild } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
-import { NbDialogService, NbDialogRef } from '@nebular/theme';
+import { NbDialogService, NbDialogRef, NbToastrService } from '@nebular/theme';
+import { Observable, Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
+
+import { mensajeDeError } from '../../@core/utils/mensaje-error';
 import {
   CuentaContable,
   TIPOS_CUENTA,
@@ -8,13 +13,14 @@ import {
   codigoPadre,
   nivelPorCodigo,
 } from './models/cuenta.model';
+import { CrearCuenta, EditarCuenta, PlanCuentasService } from './plan-cuentas.service';
 
 @Component({
   selector: 'ngx-plan-cuentas',
   templateUrl: './plan-cuentas.component.html',
   styleUrls: ['./plan-cuentas.component.scss'],
 })
-export class PlanCuentasComponent implements OnInit {
+export class PlanCuentasComponent implements OnInit, OnDestroy {
 
   @ViewChild('dialogCuenta') dialogCuenta!: TemplateRef<any>;
 
@@ -24,18 +30,32 @@ export class PlanCuentasComponent implements OnInit {
   cuentas: CuentaContable[] = [];
   cuentasFiltradas: CuentaContable[] = [];
 
+  cargando = false;
+  errorCarga = '';
+
   // Variables para la Modal
   formCuenta!: FormGroup;
   cuentaSeleccionada: CuentaContable | null = null;
+  guardando = false;
+  errorGuardar = '';
+
+  private destroy$ = new Subject<void>();
 
   constructor(
     private fb: FormBuilder,
     private dialogService: NbDialogService,
+    private toastr: NbToastrService,
+    private planCuentasService: PlanCuentasService,
   ) {}
 
   ngOnInit(): void {
     this.inicializarFormulario();
-    this.cargarCuentasEjemplo();
+    this.cargarCuentas();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   inicializarFormulario(): void {
@@ -51,45 +71,42 @@ export class PlanCuentasComponent implements OnInit {
     });
 
     // La naturaleza por defecto la define el tipo de cuenta (se puede cambiar a mano).
-    this.formCuenta.get('tipoCuenta')!.valueChanges.subscribe((tipo: TipoCuenta) => {
-      const definicion = TIPOS_CUENTA.find(t => t.valor === tipo);
-      if (definicion) {
-        this.formCuenta.get('naturaleza')!.setValue(definicion.naturaleza, { emitEvent: false });
-      }
-    });
+    this.formCuenta.get('tipoCuenta')!.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((tipo: TipoCuenta) => {
+        const definicion = TIPOS_CUENTA.find(t => t.valor === tipo);
+        if (definicion) {
+          this.formCuenta.get('naturaleza')!.setValue(definicion.naturaleza, { emitEvent: false });
+        }
+      });
+
+    // Una cuenta nueva hereda el tipo y la naturaleza de su cuenta padre (la API lo exige).
+    this.formCuenta.get('codigo')!.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((codigo: string) => {
+        if (this.cuentaSeleccionada) return;
+        const padre = this.buscarPorCodigo(codigoPadre(codigo || ''));
+        if (padre) {
+          this.formCuenta.patchValue({ tipoCuenta: padre.tipoCuenta, naturaleza: padre.naturaleza }, { emitEvent: false });
+        }
+      });
   }
 
-  // TODO Fase 3: reemplazar por GET /api/plan-cuentas. Copia de la tabla plan_cuentas (empresa 1).
-  cargarCuentasEjemplo(): void {
-    this.cuentas = [
-      { idCuenta: 1, codigo: '1', nombreCuenta: 'ACTIVO', idCuentaPadre: null, nivel: 1, tipoCuenta: 'ACTIVO', naturaleza: 'DEBITO', esMovimiento: false, pideTercero: false, pideCentroCosto: false, activo: true },
-      { idCuenta: 2, codigo: '11', nombreCuenta: 'EFECTIVO Y EQUIVALENTES DE EFECTIVO', idCuentaPadre: 1, nivel: 2, tipoCuenta: 'ACTIVO', naturaleza: 'DEBITO', esMovimiento: false, pideTercero: false, pideCentroCosto: false, activo: true },
-      { idCuenta: 3, codigo: '1105', nombreCuenta: 'CAJA', idCuentaPadre: 2, nivel: 3, tipoCuenta: 'ACTIVO', naturaleza: 'DEBITO', esMovimiento: false, pideTercero: false, pideCentroCosto: false, activo: true },
-      { idCuenta: 4, codigo: '110505', nombreCuenta: 'Caja General', idCuentaPadre: 3, nivel: 4, tipoCuenta: 'ACTIVO', naturaleza: 'DEBITO', esMovimiento: true, pideTercero: false, pideCentroCosto: false, activo: true },
-      { idCuenta: 5, codigo: '1110', nombreCuenta: 'BANCOS', idCuentaPadre: 2, nivel: 3, tipoCuenta: 'ACTIVO', naturaleza: 'DEBITO', esMovimiento: false, pideTercero: false, pideCentroCosto: false, activo: true },
-      { idCuenta: 6, codigo: '111005', nombreCuenta: 'Bancos Nacionales - M/N', idCuentaPadre: 5, nivel: 4, tipoCuenta: 'ACTIVO', naturaleza: 'DEBITO', esMovimiento: true, pideTercero: false, pideCentroCosto: false, activo: true },
-      { idCuenta: 7, codigo: '13', nombreCuenta: 'CUENTAS POR COBRAR (CLIENTES)', idCuentaPadre: 1, nivel: 2, tipoCuenta: 'ACTIVO', naturaleza: 'DEBITO', esMovimiento: false, pideTercero: false, pideCentroCosto: false, activo: true },
-      { idCuenta: 21, codigo: '1305', nombreCuenta: 'CLIENTES', idCuentaPadre: 7, nivel: 3, tipoCuenta: 'ACTIVO', naturaleza: 'DEBITO', esMovimiento: false, pideTercero: false, pideCentroCosto: false, activo: true },
-      { idCuenta: 8, codigo: '130505', nombreCuenta: 'Clientes Nacionales', idCuentaPadre: 21, nivel: 4, tipoCuenta: 'ACTIVO', naturaleza: 'DEBITO', esMovimiento: true, pideTercero: true, pideCentroCosto: false, activo: true },
-      { idCuenta: 9, codigo: '2', nombreCuenta: 'PASIVO', idCuentaPadre: null, nivel: 1, tipoCuenta: 'PASIVO', naturaleza: 'CREDITO', esMovimiento: false, pideTercero: false, pideCentroCosto: false, activo: true },
-      { idCuenta: 10, codigo: '22', nombreCuenta: 'PROVEEDORES', idCuentaPadre: 9, nivel: 2, tipoCuenta: 'PASIVO', naturaleza: 'CREDITO', esMovimiento: false, pideTercero: false, pideCentroCosto: false, activo: true },
-      { idCuenta: 22, codigo: '2205', nombreCuenta: 'NACIONALES', idCuentaPadre: 10, nivel: 3, tipoCuenta: 'PASIVO', naturaleza: 'CREDITO', esMovimiento: false, pideTercero: false, pideCentroCosto: false, activo: true },
-      { idCuenta: 11, codigo: '220505', nombreCuenta: 'Proveedores Nacionales', idCuentaPadre: 22, nivel: 4, tipoCuenta: 'PASIVO', naturaleza: 'CREDITO', esMovimiento: true, pideTercero: true, pideCentroCosto: false, activo: true },
-      { idCuenta: 12, codigo: '3', nombreCuenta: 'PATRIMONIO', idCuentaPadre: null, nivel: 1, tipoCuenta: 'PATRIMONIO', naturaleza: 'CREDITO', esMovimiento: false, pideTercero: false, pideCentroCosto: false, activo: true },
-      { idCuenta: 13, codigo: '31', nombreCuenta: 'CAPITAL SOCIAL', idCuentaPadre: 12, nivel: 2, tipoCuenta: 'PATRIMONIO', naturaleza: 'CREDITO', esMovimiento: false, pideTercero: false, pideCentroCosto: false, activo: true },
-      { idCuenta: 23, codigo: '3105', nombreCuenta: 'CAPITAL SUSCRITO Y PAGADO', idCuentaPadre: 13, nivel: 3, tipoCuenta: 'PATRIMONIO', naturaleza: 'CREDITO', esMovimiento: false, pideTercero: false, pideCentroCosto: false, activo: true },
-      { idCuenta: 14, codigo: '310505', nombreCuenta: 'Capital Suscrito y Pagado', idCuentaPadre: 23, nivel: 4, tipoCuenta: 'PATRIMONIO', naturaleza: 'CREDITO', esMovimiento: true, pideTercero: false, pideCentroCosto: false, activo: true },
-      { idCuenta: 15, codigo: '4', nombreCuenta: 'INGRESOS', idCuentaPadre: null, nivel: 1, tipoCuenta: 'INGRESO', naturaleza: 'CREDITO', esMovimiento: false, pideTercero: false, pideCentroCosto: false, activo: true },
-      { idCuenta: 16, codigo: '41', nombreCuenta: 'OPERACIONALES', idCuentaPadre: 15, nivel: 2, tipoCuenta: 'INGRESO', naturaleza: 'CREDITO', esMovimiento: false, pideTercero: false, pideCentroCosto: false, activo: true },
-      { idCuenta: 24, codigo: '4135', nombreCuenta: 'COMERCIO AL POR MAYOR Y AL POR MENOR', idCuentaPadre: 16, nivel: 3, tipoCuenta: 'INGRESO', naturaleza: 'CREDITO', esMovimiento: false, pideTercero: false, pideCentroCosto: false, activo: true },
-      { idCuenta: 17, codigo: '413505', nombreCuenta: 'Venta de Software y Servicios TI', idCuentaPadre: 24, nivel: 4, tipoCuenta: 'INGRESO', naturaleza: 'CREDITO', esMovimiento: true, pideTercero: true, pideCentroCosto: false, activo: true },
-      { idCuenta: 18, codigo: '5', nombreCuenta: 'GASTOS', idCuentaPadre: null, nivel: 1, tipoCuenta: 'GASTO', naturaleza: 'DEBITO', esMovimiento: false, pideTercero: false, pideCentroCosto: false, activo: true },
-      { idCuenta: 19, codigo: '51', nombreCuenta: 'ADMINISTRATIVOS', idCuentaPadre: 18, nivel: 2, tipoCuenta: 'GASTO', naturaleza: 'DEBITO', esMovimiento: false, pideTercero: false, pideCentroCosto: false, activo: true },
-      { idCuenta: 25, codigo: '5135', nombreCuenta: 'SERVICIOS', idCuentaPadre: 19, nivel: 3, tipoCuenta: 'GASTO', naturaleza: 'DEBITO', esMovimiento: false, pideTercero: false, pideCentroCosto: false, activo: true },
-      { idCuenta: 20, codigo: '513505', nombreCuenta: 'Servicios Públicos e Internet', idCuentaPadre: 25, nivel: 4, tipoCuenta: 'GASTO', naturaleza: 'DEBITO', esMovimiento: true, pideTercero: true, pideCentroCosto: false, activo: true },
-    ];
+  cargarCuentas(): void {
+    this.cargando = true;
+    this.errorCarga = '';
 
-    this.filtrarCuentas();
+    this.planCuentasService.listar().subscribe({
+      next: cuentas => {
+        this.cuentas = cuentas;
+        this.filtrarCuentas();
+        this.cargando = false;
+      },
+      error: (err: HttpErrorResponse) => {
+        this.errorCarga = mensajeDeError(err);
+        this.cargando = false;
+      },
+    });
   }
 
   filtrarCuentas(): void {
@@ -119,6 +136,8 @@ export class PlanCuentasComponent implements OnInit {
   // Abrir la ventana modal (Crear / Editar)
   abrirModalCuenta(cuenta?: CuentaContable): void {
     this.cuentaSeleccionada = cuenta ?? null;
+    this.errorGuardar = '';
+    this.guardando = false;
 
     this.formCuenta.reset({
       codigo: cuenta?.codigo ?? '',
@@ -134,39 +153,41 @@ export class PlanCuentasComponent implements OnInit {
     this.dialogService.open(this.dialogCuenta);
   }
 
-  // Guardar (Agregar o Modificar en memoria)
   guardarCuenta(dialogRef: NbDialogRef<any>): void {
-    if (this.formCuenta.invalid) return;
+    if (this.formCuenta.invalid || this.guardando) return;
 
-    const datos = this.formCuenta.value;
-    const padre = this.buscarPorCodigo(codigoPadre(datos.codigo));
+    const { codigo, ...cambios } = this.formCuenta.value as CrearCuenta;
+    const seleccionada = this.cuentaSeleccionada;
 
-    const cuenta: CuentaContable = {
-      ...datos,
-      idCuenta: this.cuentaSeleccionada?.idCuenta ?? this.siguienteId(),
-      nivel: nivelPorCodigo(datos.codigo)!,
-      idCuentaPadre: padre?.idCuenta ?? null,
-    };
+    const peticion$: Observable<CuentaContable> = seleccionada
+      ? this.planCuentasService.editar(seleccionada.idCuenta, cambios as EditarCuenta)
+      : this.planCuentasService.crear({ codigo, ...cambios });
 
-    if (this.cuentaSeleccionada) {
-      this.cuentas = this.cuentas.map(c => c.idCuenta === cuenta.idCuenta ? cuenta : c);
-    } else {
-      this.cuentas = [...this.cuentas, cuenta];
-    }
+    this.guardando = true;
+    this.errorGuardar = '';
 
-    this.filtrarCuentas();
-    dialogRef.close();
+    peticion$.subscribe({
+      next: guardada => {
+        this.cuentas = seleccionada
+          ? this.cuentas.map(c => c.idCuenta === guardada.idCuenta ? guardada : c)
+          : [...this.cuentas, guardada];
+        this.filtrarCuentas();
+        this.guardando = false;
+        dialogRef.close();
+        this.toastr.success(`${guardada.codigo} ${guardada.nombreCuenta}`, seleccionada ? 'Cuenta actualizada' : 'Cuenta creada');
+      },
+      error: (err: HttpErrorResponse) => {
+        this.guardando = false;
+        this.errorGuardar = mensajeDeError(err);
+      },
+    });
   }
 
   private buscarPorCodigo(codigo: string | null): CuentaContable | undefined {
     return codigo ? this.cuentas.find(c => c.codigo === codigo) : undefined;
   }
 
-  private siguienteId(): number {
-    return Math.max(0, ...this.cuentas.map(c => c.idCuenta ?? 0)) + 1;
-  }
-
-  /** Longitud válida del PUC, código no repetido y cuenta padre existente. */
+  /** Longitud válida del PUC, código no repetido y cuenta padre existente. La API vuelve a validarlo. */
   private validarCodigo(): ValidatorFn {
     return (control: AbstractControl): ValidationErrors | null => {
       const codigo: string = control.value || '';

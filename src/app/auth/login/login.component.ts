@@ -3,6 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../@core/services/auth.service';
+import { mensajeDeError } from '../../@core/utils/mensaje-error';
 
 @Component({
   selector: 'app-login',
@@ -42,14 +43,8 @@ export class LoginComponent implements OnInit {
       },
       error: (err: HttpErrorResponse) => {
         this.isLoading = false;
-        this.errorMessage = this.mensajeError(err);
+        this.errorMessage = mensajeDeError(err);
       },
     });
-  }
-
-  private mensajeError(err: HttpErrorResponse): string {
-    if (err.status === 0) return 'No se pudo conectar con el servidor.';
-    if (err.status === 429) return 'Demasiados intentos. Espere un minuto e intente de nuevo.';
-    return err.error?.message || 'Ocurrió un error inesperado. Intente de nuevo.';
   }
 }

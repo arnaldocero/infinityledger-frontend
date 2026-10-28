@@ -7,7 +7,8 @@ import { NbCardModule,
   NbInputModule,
   NbDialogModule,
   NbSelectModule,
-  NbCheckboxModule } from '@nebular/theme';
+  NbCheckboxModule,
+  NbSpinnerModule } from '@nebular/theme';
 
 import { PlanCuentasRoutingModule } from './plan-cuentas-routing.module';
 import { PlanCuentasComponent } from './plan-cuentas.component';
@@ -28,6 +29,7 @@ import { PlanCuentasComponent } from './plan-cuentas.component';
     NbDialogModule.forChild(), // <--- Habilita modales en este módulo
     NbSelectModule,
     NbCheckboxModule,
+    NbSpinnerModule,
   ],
 })
 export class PlanCuentasModule { }

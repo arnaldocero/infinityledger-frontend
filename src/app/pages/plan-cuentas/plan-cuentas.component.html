@@ -10,7 +10,13 @@
       </button>
     </nb-card-header>
 
-    <nb-card-body>
+    <nb-card-body [nbSpinner]="cargando" nbSpinnerStatus="primary" nbSpinnerMessage="Cargando cuentas...">
+      <!-- Error al cargar desde la API -->
+      <div *ngIf="errorCarga" class="alert alert-danger d-flex justify-content-between align-items-center" role="alert">
+        <span>No se pudo cargar el plan de cuentas: {{ errorCarga }}</span>
+        <button nbButton size="small" status="danger" (click)="cargarCuentas()">Reintentar</button>
+      </div>
+
       <!-- Buscador -->
       <div class="row mb-3">
         <div class="col-md-6 col-12">
@@ -80,7 +86,7 @@
                 </button>
               </td>
             </tr>
-            <tr *ngIf="cuentasFiltradas.length === 0">
+            <tr *ngIf="!cargando && !errorCarga && cuentasFiltradas.length === 0">
               <td colspan="8" class="text-center text-muted py-4">
                 No se encontraron cuentas contables que coincidan con la búsqueda.
               </td>
@@ -93,7 +99,7 @@
 
   <!-- PLANTILLA DE LA VENTANA MODAL (TEMPLATE) -->
   <ng-template #dialogCuenta let-data let-ref="dialogRef">
-    <nb-card style="width: 560px; max-width: 90vw;">
+    <nb-card class="dialogo-cuenta">
       <nb-card-header class="d-flex justify-content-between align-items-center">
         <span>{{ cuentaSeleccionada ? 'Editar Cuenta Contable' : 'Nueva Cuenta Contable' }}</span>
         <button nbButton ghost status="danger" size="tiny" (click)="ref.close()">
@@ -161,13 +167,17 @@
 
           </div>
 
+          <!-- Error devuelto por la API (reglas del PUC, permisos, conexión) -->
+          <div *ngIf="errorGuardar" class="alert alert-danger mb-0" role="alert">{{ errorGuardar }}</div>
+
           <!-- Botones de Acción -->
           <div class="d-flex justify-content-end mt-3 gap-2">
-            <button nbButton type="button" status="basic" (click)="ref.close()">
+            <button nbButton type="button" status="basic" (click)="ref.close()" [disabled]="guardando">
               Cancelar
             </button>
-            <button nbButton type="submit" status="success" [disabled]="formCuenta.invalid">
-              Guardar
+            <button nbButton type="submit" status="success" [disabled]="formCuenta.invalid || guardando"
+                    [nbSpinner]="guardando" nbSpinnerSize="small">
+              {{ guardando ? 'Guardando...' : 'Guardar' }}
             </button>
           </div>
         </form>
