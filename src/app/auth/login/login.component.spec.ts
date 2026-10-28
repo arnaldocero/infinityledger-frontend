@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
@@ -38,6 +39,7 @@ describe('LoginComponent', () => {
   it('navega al dashboard cuando el login es exitoso', () => {
     authService.login.and.returnValue(of({
       token: 't',
+      expiraEn: '2026-10-27T23:00:00Z',
       usuario: { idUsuario: 1, idEmpresa: 1, nombre: 'admin', rol: 'ADMIN' },
     }));
     component.loginForm.setValue({ email: 'admin@codeledger.com', password: '123456' });
@@ -48,13 +50,28 @@ describe('LoginComponent', () => {
     expect(component.isLoading).toBe(false);
   });
 
-  it('muestra el mensaje de error de la API', () => {
-    authService.login.and.returnValue(throwError({ error: { message: 'Credenciales inválidas' } }));
-    component.loginForm.setValue({ email: 'admin@codeledger.com', password: '123456' });
+  const casosDeError: [string, HttpErrorResponse, string][] = [
+    ['credenciales incorrectas (401)',
+      new HttpErrorResponse({ status: 401, error: { message: 'Correo o contraseña incorrectos.' } }),
+      'Correo o contraseña incorrectos.'],
+    ['API caída (status 0)',
+      new HttpErrorResponse({ status: 0 }),
+      'No se pudo conectar con el servidor.'],
+    ['demasiados intentos (429)',
+      new HttpErrorResponse({ status: 429 }),
+      'Demasiados intentos. Espere un minuto e intente de nuevo.'],
+  ];
 
-    component.onSubmit();
+  casosDeError.forEach(([caso, error, mensaje]) => {
+    it(`muestra el mensaje adecuado: ${caso}`, () => {
+      authService.login.and.returnValue(throwError(error));
+      component.loginForm.setValue({ email: 'admin@codeledger.com', password: '123456' });
 
-    expect(component.errorMessage).toBe('Credenciales inválidas');
-    expect(router.navigate).not.toHaveBeenCalled();
+      component.onSubmit();
+
+      expect(component.errorMessage).toBe(mensaje);
+      expect(component.isLoading).toBe(false);
+      expect(router.navigate).not.toHaveBeenCalled();
+    });
   });
 });

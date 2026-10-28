@@ -27,13 +27,16 @@ Abre http://localhost:4200. Otros comandos: `npm run build`, `npm test`, `npm ru
 | `src/app/@theme` | Layout, header, footer y temas de Nebular |
 | `src/app/auth` | Login |
 | `src/app/pages` | Módulos del sistema: dashboard, plan de cuentas, asientos, terceros, usuarios |
-| `src/environments` | URL de la API (`apiUrl`) y `authSimulada` |
+| `src/environments` | URL de la API (`apiUrl`) |
 
 ## Autenticación y roles
 
-- Mientras no exista el backend, `environment.authSimulada = true`: cualquier correo y contraseña
-  válidos entran como ADMIN. En la Fase 2 se cambia a `false` para usar `POST {apiUrl}/auth/login`.
+- El login llama a `POST {apiUrl}/auth/login` del backend (en desarrollo `http://localhost:5000/api`),
+  que devuelve un JWT y los datos del usuario. Antes de iniciar sesión hay que levantar la API
+  (ver el README del backend).
+- El token y el usuario se guardan en `localStorage`. Si el token ya venció, la sesión se cierra sola.
 - El interceptor agrega `Authorization: Bearer <token>` a las peticiones hacia `apiUrl` y cierra la
   sesión si la API responde 401.
 - Los roles de cada sección están en `src/app/pages/pages-menu.ts`; el mismo arreglo filtra el menú
-  y protege la ruta (`rolGuard`).
+  y protege la ruta (`rolGuard`). Esto solo controla lo que se muestra: los permisos reales los
+  aplica la API.

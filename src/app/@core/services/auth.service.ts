@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, of } from 'rxjs';
-import { delay, tap } from 'rxjs/operators';
+import { Observable } from 'rxjs';
+import { tap } from 'rxjs/operators';
 
 import { environment } from '../../../environments/environment';
 import { Rol } from '../models/rol.model';
@@ -14,8 +14,10 @@ export interface UsuarioSesion {
   rol: Rol;
 }
 
+/** Respuesta de POST /api/auth/login. */
 export interface LoginResponse {
   token: string;
+  expiraEn: string;
   usuario: UsuarioSesion;
 }
 
@@ -31,21 +33,25 @@ export class AuthService {
   constructor(private http: HttpClient, private router: Router) {}
 
   login(email: string, password: string): Observable<LoginResponse> {
-    const peticion$ = environment.authSimulada
-      ? this.loginSimulado(email)
-      : this.http.post<LoginResponse>(`${this.apiUrl}/login`, { email, password });
-
-    return peticion$.pipe(tap(response => this.guardarSesion(response)));
+    return this.http.post<LoginResponse>(`${this.apiUrl}/login`, { email, password })
+      .pipe(tap(response => this.guardarSesion(response)));
   }
 
   logout(): void {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USUARIO_KEY);
+    this.limpiarSesion();
     this.router.navigate(['/auth/login']);
   }
 
+  /** Hay sesión si existe un token y todavía no venció. */
   isLoggedIn(): boolean {
-    return !!this.getToken();
+    const token = this.getToken();
+    if (!token) return false;
+
+    if (this.tokenVencido(token)) {
+      this.limpiarSesion();
+      return false;
+    }
+    return true;
   }
 
   getToken(): string | null {
@@ -78,11 +84,22 @@ export class AuthService {
     localStorage.setItem(USUARIO_KEY, JSON.stringify(response.usuario));
   }
 
-  // TODO Fase 2: eliminar cuando el backend tenga POST /api/auth/login.
-  private loginSimulado(email: string): Observable<LoginResponse> {
-    return of<LoginResponse>({
-      token: 'token-simulado',
-      usuario: { idUsuario: 1, idEmpresa: 1, nombre: email.split('@')[0], rol: 'ADMIN' },
-    }).pipe(delay(300));
+  private limpiarSesion(): void {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USUARIO_KEY);
+  }
+
+  /**
+   * Lee el campo `exp` (segundos Unix) del JWT. Solo sirve para no mostrar pantallas con un
+   * token vencido: la firma la valida la API, que responde 401 si el token no es válido.
+   */
+  private tokenVencido(token: string): boolean {
+    try {
+      const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+      const { exp } = JSON.parse(atob(payload));
+      return typeof exp !== 'number' || exp * 1000 <= Date.now();
+    } catch {
+      return true;
+    }
   }
 }
