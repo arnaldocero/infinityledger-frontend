@@ -1,0 +1,23 @@
+.dialogo {
+  width: 460px;
+  max-width: 90vw;
+  max-height: 90vh;
+
+  nb-card-body {
+    overflow-y: auto;
+  }
+}
+
+.crear {
+  .anio {
+    width: 7rem;
+  }
+
+  .mes {
+    min-width: 10rem;
+  }
+}
+
+td {
+  white-space: nowrap;
+}

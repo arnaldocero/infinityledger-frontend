@@ -1,0 +1,96 @@
+<nb-card>
+  <nb-card-header class="d-flex justify-content-between align-items-center">
+    <div>
+      <h4 class="mb-0">Tipos de Comprobante</h4>
+      <small class="text-muted">Cada tipo numera sus asientos con su propio consecutivo</small>
+    </div>
+    <button nbButton status="primary" size="medium" (click)="abrirModal()">
+      <nb-icon icon="plus-outline"></nb-icon> Nuevo Tipo
+    </button>
+  </nb-card-header>
+
+  <nb-card-body [nbSpinner]="cargando" nbSpinnerStatus="primary" nbSpinnerMessage="Cargando tipos de comprobante...">
+    <div *ngIf="errorCarga" class="alert alert-danger d-flex justify-content-between align-items-center" role="alert">
+      <span>No se pudieron cargar los tipos de comprobante: {{ errorCarga }}</span>
+      <button nbButton size="small" status="danger" (click)="cargarTipos()">Reintentar</button>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-hover table-striped align-middle">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Nombre</th>
+            <th class="text-right">Próximo número</th>
+            <th class="text-center">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let tipo of tipos">
+            <td class="codigo"><code>{{ tipo.codigo }}</code></td>
+            <td>{{ tipo.nombre }}</td>
+            <td class="text-right">{{ tipo.consecutivoActual }}</td>
+            <td class="text-center">
+              <button nbButton ghost status="info" size="tiny" title="Editar" (click)="abrirModal(tipo)">
+                <nb-icon icon="edit-outline"></nb-icon>
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="!cargando && !errorCarga && tipos.length === 0">
+            <td colspan="4" class="text-center text-muted py-4">Todavía no hay tipos de comprobante.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </nb-card-body>
+</nb-card>
+
+<!-- Crear / editar tipo de comprobante -->
+<ng-template #dialogTipo let-ref="dialogRef">
+  <nb-card class="dialogo">
+    <nb-card-header class="d-flex justify-content-between align-items-center">
+      <span>{{ tipoSeleccionado ? 'Editar Tipo de Comprobante' : 'Nuevo Tipo de Comprobante' }}</span>
+      <button nbButton ghost status="danger" size="tiny" (click)="ref.close()">
+        <nb-icon icon="close-outline"></nb-icon>
+      </button>
+    </nb-card-header>
+
+    <nb-card-body>
+      <form [formGroup]="formTipo" (ngSubmit)="guardar(ref)">
+        <!-- El código no se cambia al editar: identifica los comprobantes ya numerados -->
+        <div class="mb-3">
+          <label class="label">Código *</label>
+          <input nbInput fullWidth type="text" formControlName="codigo" placeholder="Ej: RC" maxlength="10"
+                 [readonly]="!!tipoSeleccionado" />
+          <small class="text-danger" *ngIf="formTipo.get('codigo')?.touched && formTipo.get('codigo')?.invalid">
+            De 2 a 10 letras, sin números ni espacios.
+          </small>
+        </div>
+
+        <div class="mb-3">
+          <label class="label">Nombre *</label>
+          <input nbInput fullWidth type="text" formControlName="nombre" placeholder="Ej: Recibo de caja" />
+          <small class="text-danger" *ngIf="formTipo.get('nombre')?.touched && formTipo.get('nombre')?.invalid">
+            El nombre es obligatorio (mínimo 3 caracteres).
+          </small>
+        </div>
+
+        <div class="mb-3">
+          <label class="label">Próximo número *</label>
+          <input nbInput fullWidth type="number" min="1" formControlName="consecutivoActual" />
+          <small class="text-hint d-block">No puede ser menor o igual a un número ya usado.</small>
+        </div>
+
+        <div *ngIf="errorGuardar" class="alert alert-danger mb-0" role="alert">{{ errorGuardar }}</div>
+
+        <div class="d-flex justify-content-end mt-3 gap-2">
+          <button nbButton type="button" status="basic" (click)="ref.close()" [disabled]="guardando">Cancelar</button>
+          <button nbButton type="submit" status="success" [disabled]="formTipo.invalid || guardando"
+                  [nbSpinner]="guardando" nbSpinnerSize="small">
+            {{ guardando ? 'Guardando...' : 'Guardar' }}
+          </button>
+        </div>
+      </form>
+    </nb-card-body>
+  </nb-card>
+</ng-template>

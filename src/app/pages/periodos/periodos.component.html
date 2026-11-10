@@ -1,0 +1,101 @@
+<nb-card>
+  <nb-card-header>
+    <h4 class="mb-0">Períodos Fiscales</h4>
+    <small class="text-muted">Los períodos se cierran en orden; un período cerrado no admite asientos.</small>
+  </nb-card-header>
+
+  <nb-card-body [nbSpinner]="cargando" nbSpinnerStatus="primary" nbSpinnerMessage="Cargando períodos...">
+    <!-- Crear un mes o todos los meses que falten de un año -->
+    <div class="crear d-flex flex-wrap align-items-end mb-3">
+      <div class="mr-2 mb-2">
+        <label class="label d-block">Año</label>
+        <input nbInput type="number" min="2000" max="2100" [(ngModel)]="anioNuevo" class="anio" />
+      </div>
+      <div class="mr-2 mb-2">
+        <label class="label d-block">Mes</label>
+        <nb-select [(selected)]="mesNuevo" class="mes">
+          <nb-option *ngFor="let mes of meses" [value]="mes.valor">{{ mes.nombre }}</nb-option>
+        </nb-select>
+      </div>
+      <button nbButton status="primary" class="mr-2 mb-2" (click)="crearMes()" [disabled]="!anioValido || creando">
+        <nb-icon icon="plus-outline"></nb-icon> Crear mes
+      </button>
+      <button nbButton status="primary" outline class="mb-2" (click)="generarAnio()" [disabled]="!anioValido || creando">
+        <nb-icon icon="calendar-outline"></nb-icon> Generar año completo
+      </button>
+    </div>
+    <div *ngIf="errorCrear" class="alert alert-danger" role="alert">{{ errorCrear }}</div>
+
+    <div *ngIf="errorCarga" class="alert alert-danger d-flex justify-content-between align-items-center" role="alert">
+      <span>No se pudieron cargar los períodos: {{ errorCarga }}</span>
+      <button nbButton size="small" status="danger" (click)="cargarPeriodos()">Reintentar</button>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-hover table-striped align-middle">
+        <thead>
+          <tr>
+            <th>Período</th>
+            <th>Desde</th>
+            <th>Hasta</th>
+            <th class="text-center">Estado</th>
+            <th class="text-center">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let periodo of periodos">
+            <td class="font-weight-bold">{{ nombrePeriodo(periodo) }}</td>
+            <td>{{ periodo.fechaInicio }}</td>
+            <td>{{ periodo.fechaFin }}</td>
+            <td class="text-center">
+              <span class="badge" [ngClass]="periodo.estado === 'ABIERTO' ? 'badge-success' : 'badge-secondary'">
+                {{ periodo.estado === 'ABIERTO' ? 'Abierto' : 'Cerrado' }}
+              </span>
+            </td>
+            <td class="text-center">
+              <button *ngIf="periodo.estado === 'ABIERTO'" nbButton ghost size="small" status="warning"
+                      (click)="confirmar('cerrar', periodo)">
+                <nb-icon icon="lock-outline"></nb-icon> Cerrar
+              </button>
+              <button *ngIf="periodo.estado === 'CERRADO' && puedeReabrir" nbButton ghost size="small" status="info"
+                      (click)="confirmar('reabrir', periodo)">
+                <nb-icon icon="unlock-outline"></nb-icon> Reabrir
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="!cargando && !errorCarga && periodos.length === 0">
+            <td colspan="5" class="text-center text-muted py-4">Todavía no hay períodos. Cree uno arriba.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </nb-card-body>
+</nb-card>
+
+<!-- Confirmación de cerrar / reabrir -->
+<ng-template #dialogConfirmar let-ref="dialogRef">
+  <nb-card class="dialogo" *ngIf="accion">
+    <nb-card-header>
+      {{ accion.tipo === 'cerrar' ? 'Cerrar' : 'Reabrir' }} {{ nombrePeriodo(accion.periodo) }}
+    </nb-card-header>
+    <nb-card-body>
+      <p *ngIf="accion.tipo === 'cerrar'">
+        Después de cerrarlo no se podrán registrar ni modificar asientos en este período.
+        Solo un administrador puede reabrirlo.
+      </p>
+      <p *ngIf="accion.tipo === 'reabrir'">
+        Al reabrirlo se podrán volver a registrar y modificar asientos en este período.
+      </p>
+
+      <div *ngIf="errorAccion" class="alert alert-danger mb-0" role="alert">{{ errorAccion }}</div>
+
+      <div class="d-flex justify-content-end mt-3 gap-2">
+        <button nbButton status="basic" (click)="ref.close()" [disabled]="ejecutando">Cancelar</button>
+        <button nbButton [status]="accion.tipo === 'cerrar' ? 'warning' : 'info'" (click)="ejecutarAccion(ref)"
+                [disabled]="ejecutando" [nbSpinner]="ejecutando" nbSpinnerSize="small">
+          {{ accion.tipo === 'cerrar' ? 'Sí, cerrar' : 'Sí, reabrir' }}
+        </button>
+      </div>
+    </nb-card-body>
+  </nb-card>
+</ng-template>

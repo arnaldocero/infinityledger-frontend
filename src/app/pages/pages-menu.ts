@@ -7,6 +7,8 @@ export const ROLES_PLAN_CUENTAS: Rol[] = ['ADMIN', 'CONTADOR'];
 export const ROLES_ASIENTOS: Rol[] = ['ADMIN', 'CONTADOR', 'AUXILIAR'];
 export const ROLES_TERCEROS: Rol[] = ['ADMIN', 'CONTADOR', 'AUXILIAR'];
 export const ROLES_CENTROS_COSTO: Rol[] = ['ADMIN', 'CONTADOR'];
+export const ROLES_PERIODOS: Rol[] = ['ADMIN', 'CONTADOR'];
+export const ROLES_TIPOS_COMPROBANTE: Rol[] = ['ADMIN', 'CONTADOR'];
 export const ROLES_USUARIOS: Rol[] = ['ADMIN'];
 
 export const MENU_ITEMS: NbMenuItem[] = [
@@ -42,6 +44,16 @@ export const MENU_ITEMS: NbMenuItem[] = [
         title: 'Centros de Costo',
         link: '/pages/centros-costo',
         data: { roles: ROLES_CENTROS_COSTO },
+      },
+      {
+        title: 'Períodos Fiscales',
+        link: '/pages/periodos',
+        data: { roles: ROLES_PERIODOS },
+      },
+      {
+        title: 'Tipos de Comprobante',
+        link: '/pages/tipos-comprobante',
+        data: { roles: ROLES_TIPOS_COMPROBANTE },
       },
       {
         title: 'Usuarios',
