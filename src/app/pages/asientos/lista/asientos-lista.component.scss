@@ -1,0 +1,13 @@
+.nowrap {
+  white-space: nowrap;
+}
+
+code {
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+tr.anulado td {
+  text-decoration: line-through;
+  opacity: 0.6;
+}

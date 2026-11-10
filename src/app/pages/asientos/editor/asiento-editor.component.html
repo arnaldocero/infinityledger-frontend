@@ -1,0 +1,193 @@
+<nb-card>
+  <nb-card-header class="d-flex justify-content-between align-items-center flex-wrap">
+    <div>
+      <h4 class="mb-0">
+        {{ titulo }}
+        <span *ngIf="estadoAsiento" class="badge ml-2" [ngClass]="estadoAsiento.clase">{{ estadoAsiento.nombre }}</span>
+      </h4>
+      <small class="text-muted" *ngIf="!soloLectura">
+        Un borrador puede guardarse descuadrado; para publicar, débitos y créditos deben ser iguales.
+      </small>
+    </div>
+    <a nbButton ghost status="basic" routerLink="/pages/asientos">
+      <nb-icon icon="arrow-back-outline"></nb-icon> Volver
+    </a>
+  </nb-card-header>
+
+  <nb-card-body [nbSpinner]="cargando" nbSpinnerStatus="primary" nbSpinnerMessage="Cargando...">
+    <div *ngIf="errorCarga" class="alert alert-danger d-flex justify-content-between align-items-center" role="alert">
+      <span>No se pudo cargar: {{ errorCarga }}</span>
+      <button nbButton size="small" status="danger" (click)="cargar()">Reintentar</button>
+    </div>
+
+    <!-- ===== Consulta: asiento publicado o anulado ===== -->
+    <ng-container *ngIf="soloLectura && asiento">
+      <div class="row mb-3">
+        <div class="col-md-3 col-6"><span class="label d-block">Fecha</span>{{ asiento.fechaAsiento }}</div>
+        <div class="col-md-9 col-12"><span class="label d-block">Concepto</span>{{ asiento.conceptoGeneral }}</div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-striped align-middle">
+          <thead>
+            <tr>
+              <th>Cuenta</th>
+              <th>Tercero</th>
+              <th>C. costo</th>
+              <th>Concepto</th>
+              <th class="text-right">Débito</th>
+              <th class="text-right">Crédito</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let linea of asiento.lineas">
+              <td><code>{{ linea.codigoCuenta }}</code> {{ linea.nombreCuenta }}</td>
+              <td>{{ linea.nombreTercero || '—' }}</td>
+              <td>{{ linea.codigoCentroCosto || '—' }}</td>
+              <td>{{ linea.concepto || '—' }}</td>
+              <td class="text-right nowrap">{{ linea.debe ? (linea.debe | number:'1.2-2') : '' }}</td>
+              <td class="text-right nowrap">{{ linea.haber ? (linea.haber | number:'1.2-2') : '' }}</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr class="totales">
+              <td colspan="4" class="text-right">Totales</td>
+              <td class="text-right nowrap">{{ asiento.totalDebe | number:'1.2-2' }}</td>
+              <td class="text-right nowrap">{{ asiento.totalHaber | number:'1.2-2' }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div *ngIf="errorGuardar" class="alert alert-danger" role="alert">{{ errorGuardar }}</div>
+
+      <div class="d-flex justify-content-end" *ngIf="puedeAnular && asiento.estado !== 'ANULADO'">
+        <button nbButton status="danger" outline (click)="anular()" [disabled]="guardando">
+          <nb-icon icon="slash-outline"></nb-icon> Anular asiento
+        </button>
+      </div>
+    </ng-container>
+
+    <!-- ===== Registro o edición de un borrador ===== -->
+    <form *ngIf="!soloLectura && !errorCarga" [formGroup]="form" (ngSubmit)="guardar(false)">
+      <div class="row">
+        <div class="col-md-3 col-12 mb-3">
+          <label class="label">Tipo de comprobante *</label>
+          <nb-select fullWidth formControlName="idTipoComprobante">
+            <nb-option *ngFor="let tipo of tipos" [value]="tipo.idTipoComprobante">{{ tipo.codigo }} — {{ tipo.nombre }}</nb-option>
+          </nb-select>
+        </div>
+        <div class="col-md-3 col-12 mb-3">
+          <label class="label">Fecha *</label>
+          <input nbInput fullWidth type="date" formControlName="fechaAsiento" />
+        </div>
+        <div class="col-md-6 col-12 mb-3">
+          <label class="label">Concepto *</label>
+          <input nbInput fullWidth type="text" formControlName="conceptoGeneral" placeholder="Ej: Venta de contado factura 123" />
+          <small class="text-danger" *ngIf="form.get('conceptoGeneral')?.touched && form.get('conceptoGeneral')?.invalid">
+            El concepto es obligatorio (mínimo 3 caracteres).
+          </small>
+        </div>
+      </div>
+
+      <!-- Opciones de los buscadores de cuenta y tercero -->
+      <datalist id="cuentas-auxiliares">
+        <option *ngFor="let cuenta of cuentas" [value]="textoCuenta(cuenta)"></option>
+      </datalist>
+      <datalist id="terceros-activos">
+        <option *ngFor="let tercero of terceros" [value]="textoTercero(tercero)"></option>
+      </datalist>
+
+      <div class="table-responsive">
+        <table class="table lineas align-middle" formArrayName="lineas">
+          <thead>
+            <tr>
+              <th class="col-cuenta">Cuenta *</th>
+              <th class="col-tercero">Tercero</th>
+              <th class="col-centro">C. costo</th>
+              <th class="col-concepto">Concepto</th>
+              <th class="col-valor text-right">Débito</th>
+              <th class="col-valor text-right">Crédito</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let linea of lineasGrupos; let i = index" [formGroupName]="i"
+                [class.con-error]="linea.touched && linea.invalid">
+              <td>
+                <input nbInput fullWidth fieldSize="small" type="text" formControlName="cuenta" list="cuentas-auxiliares"
+                       placeholder="Código o nombre" (change)="alCambiarCuenta(i)" />
+                <small class="text-danger d-block" *ngIf="linea.touched && linea.errors?.['cuenta']">Elija una cuenta auxiliar.</small>
+              </td>
+              <td>
+                <input nbInput fullWidth fieldSize="small" type="text" formControlName="tercero" list="terceros-activos"
+                       [placeholder]="cuentaDe(linea)?.pideTercero ? 'Obligatorio' : 'Opcional'" (change)="alCambiarTercero(i)" />
+                <small class="text-danger d-block" *ngIf="linea.touched && linea.errors?.['tercero']">Esta cuenta exige tercero.</small>
+              </td>
+              <td>
+                <select class="form-control form-control-sm" formControlName="idCentroCosto">
+                  <option [ngValue]="null">{{ cuentaDe(linea)?.pideCentroCosto ? 'Elija...' : '—' }}</option>
+                  <option *ngFor="let centro of centros" [ngValue]="centro.idCentroCosto">{{ centro.codigo }}</option>
+                </select>
+                <small class="text-danger d-block" *ngIf="linea.touched && linea.errors?.['centro']">Exige centro.</small>
+              </td>
+              <td>
+                <input nbInput fullWidth fieldSize="small" type="text" formControlName="concepto" maxlength="255" />
+              </td>
+              <td>
+                <input nbInput fullWidth fieldSize="small" type="number" min="0" step="0.01" class="text-right"
+                       formControlName="debe" (input)="alEscribirValor(i, 'debe')" />
+              </td>
+              <td>
+                <input nbInput fullWidth fieldSize="small" type="number" min="0" step="0.01" class="text-right"
+                       formControlName="haber" (input)="alEscribirValor(i, 'haber')" />
+                <small class="text-danger d-block" *ngIf="linea.touched && linea.errors?.['valor']">Débito o crédito.</small>
+              </td>
+              <td class="text-center">
+                <button nbButton ghost status="danger" size="tiny" type="button" title="Quitar línea"
+                        (click)="quitarLinea(i)" [disabled]="lineas.length === 1">
+                  <nb-icon icon="trash-2-outline"></nb-icon>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr class="totales">
+              <td colspan="4">
+                <button nbButton ghost status="primary" size="small" type="button" (click)="agregarLinea()">
+                  <nb-icon icon="plus-outline"></nb-icon> Agregar línea
+                </button>
+              </td>
+              <td class="text-right nowrap">{{ totalDebe | number:'1.2-2' }}</td>
+              <td class="text-right nowrap">{{ totalHaber | number:'1.2-2' }}</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td colspan="7" class="text-right">
+                <span *ngIf="cuadra" class="badge badge-success">Cuadrado</span>
+                <span *ngIf="!cuadra" class="badge badge-danger">
+                  Diferencia {{ diferencia | number:'1.2-2' }}
+                </span>
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div *ngIf="errorGuardar" class="alert alert-danger" role="alert">{{ errorGuardar }}</div>
+
+      <div class="d-flex justify-content-end flex-wrap gap-2">
+        <button *ngIf="asiento && puedeAnular" nbButton type="button" status="danger" outline (click)="anular()" [disabled]="guardando">
+          Anular borrador
+        </button>
+        <button nbButton type="submit" status="basic" [disabled]="guardando">
+          Guardar borrador
+        </button>
+        <button nbButton type="button" status="success" (click)="guardar(true)" [disabled]="guardando || !cuadra"
+                [nbSpinner]="guardando" nbSpinnerSize="small">
+          Guardar y publicar
+        </button>
+      </div>
+    </form>
+  </nb-card-body>
+</nb-card>

@@ -1,19 +1,37 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule } from '@angular/forms';
 import { RouterModule, Routes } from '@angular/router';
-import { NbCardModule } from '@nebular/theme'; // <-- Importamos el módulo de Nebular
-import { AsientosComponent } from './asientos.component';
+import {
+  NbButtonModule,
+  NbCardModule,
+  NbIconModule,
+  NbInputModule,
+  NbSelectModule,
+  NbSpinnerModule,
+} from '@nebular/theme';
+
+import { AsientosListaComponent } from './lista/asientos-lista.component';
+import { AsientoEditorComponent } from './editor/asiento-editor.component';
 
 const routes: Routes = [
-  { path: '', component: AsientosComponent }
+  { path: '', component: AsientosListaComponent },
+  { path: 'nuevo', component: AsientoEditorComponent },
+  { path: ':id', component: AsientoEditorComponent },
 ];
 
 @NgModule({
-  declarations: [AsientosComponent],
+  declarations: [AsientosListaComponent, AsientoEditorComponent],
   imports: [
     CommonModule,
+    ReactiveFormsModule,
     RouterModule.forChild(routes),
-    NbCardModule // <-- Lo agregamos a los imports
-  ]
+    NbButtonModule,
+    NbCardModule,
+    NbIconModule,
+    NbInputModule,
+    NbSelectModule,
+    NbSpinnerModule,
+  ],
 })
 export class AsientosModule { }

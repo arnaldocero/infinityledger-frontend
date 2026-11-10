@@ -1,0 +1,70 @@
+<nb-card>
+  <nb-card-header class="d-flex justify-content-between align-items-center">
+    <div>
+      <h4 class="mb-0">Asientos Contables</h4>
+      <small class="text-muted">Comprobantes registrados por período</small>
+    </div>
+    <a nbButton status="primary" size="medium" routerLink="/pages/asientos/nuevo">
+      <nb-icon icon="plus-outline"></nb-icon> Nuevo Asiento
+    </a>
+  </nb-card-header>
+
+  <nb-card-body [nbSpinner]="cargando" nbSpinnerStatus="primary" nbSpinnerMessage="Cargando asientos...">
+    <div class="row mb-3">
+      <div class="col-md-4 col-12 mb-2">
+        <nb-select fullWidth [(selected)]="filtroPeriodo" (selectedChange)="cargarAsientos()" placeholder="Todos los períodos">
+          <nb-option [value]="null">Todos los períodos</nb-option>
+          <nb-option *ngFor="let periodo of periodos" [value]="periodo.idPeriodo">{{ nombrePeriodo(periodo) }}</nb-option>
+        </nb-select>
+      </div>
+      <div class="col-md-3 col-12 mb-2">
+        <nb-select fullWidth [(selected)]="filtroEstado" (selectedChange)="cargarAsientos()" placeholder="Todos los estados">
+          <nb-option value="">Todos los estados</nb-option>
+          <nb-option *ngFor="let estado of estados" [value]="estado.valor">{{ estado.nombre }}</nb-option>
+        </nb-select>
+      </div>
+    </div>
+
+    <div *ngIf="errorCarga" class="alert alert-danger d-flex justify-content-between align-items-center" role="alert">
+      <span>No se pudieron cargar los asientos: {{ errorCarga }}</span>
+      <button nbButton size="small" status="danger" (click)="cargarAsientos()">Reintentar</button>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-hover table-striped align-middle">
+        <thead>
+          <tr>
+            <th>Comprobante</th>
+            <th>Fecha</th>
+            <th>Concepto</th>
+            <th class="text-right">Débitos</th>
+            <th class="text-right">Créditos</th>
+            <th class="text-center">Estado</th>
+            <th class="text-center">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let asiento of asientos" [class.anulado]="asiento.estado === 'ANULADO'">
+            <td class="nowrap"><code>{{ asiento.comprobante }}</code></td>
+            <td class="nowrap">{{ asiento.fechaAsiento }}</td>
+            <td>{{ asiento.conceptoGeneral }}</td>
+            <td class="text-right nowrap">{{ asiento.totalDebe | number:'1.2-2' }}</td>
+            <td class="text-right nowrap">{{ asiento.totalHaber | number:'1.2-2' }}</td>
+            <td class="text-center">
+              <span class="badge" [ngClass]="estado(asiento.estado).clase">{{ estado(asiento.estado).nombre }}</span>
+            </td>
+            <td class="text-center">
+              <a nbButton ghost status="info" size="tiny" [routerLink]="['/pages/asientos', asiento.idAsiento]"
+                 [title]="asiento.estado === 'BORRADOR' ? 'Editar' : 'Ver'">
+                <nb-icon [icon]="asiento.estado === 'BORRADOR' ? 'edit-outline' : 'eye-outline'"></nb-icon>
+              </a>
+            </td>
+          </tr>
+          <tr *ngIf="!cargando && !errorCarga && asientos.length === 0">
+            <td colspan="7" class="text-center text-muted py-4">No hay asientos con estos filtros.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </nb-card-body>
+</nb-card>

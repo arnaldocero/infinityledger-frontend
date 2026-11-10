@@ -1,0 +1,32 @@
+.nowrap {
+  white-space: nowrap;
+}
+
+code {
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.lineas {
+  min-width: 900px;
+
+  .col-cuenta { width: 26%; }
+  .col-tercero { width: 22%; }
+  .col-centro { width: 10%; }
+  .col-concepto { width: 16%; }
+  .col-valor { width: 12%; }
+
+  td {
+    vertical-align: top;
+    padding: 0.35rem;
+  }
+
+  tr.con-error td {
+    background-color: rgba(255, 61, 113, 0.06);
+  }
+}
+
+.totales td {
+  font-weight: 600;
+  border-top: 2px solid rgba(0, 0, 0, 0.15);
+}
