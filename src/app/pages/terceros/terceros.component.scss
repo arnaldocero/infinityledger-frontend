@@ -1,0 +1,28 @@
+// En pantallas bajas el contenido del diálogo hace scroll y los botones siguen alcanzables
+.dialogo {
+  width: 620px;
+  max-width: 90vw;
+  max-height: 90vh;
+
+  nb-card-body {
+    overflow-y: auto;
+  }
+}
+
+.documento {
+  white-space: nowrap;
+
+  small {
+    display: block;
+  }
+
+  code {
+    font-weight: bold;
+    font-size: 0.9rem;
+  }
+}
+
+.dv {
+  font-weight: bold;
+  white-space: nowrap;
+}

@@ -6,6 +6,7 @@ import { Rol } from '../@core/models/rol.model';
 export const ROLES_PLAN_CUENTAS: Rol[] = ['ADMIN', 'CONTADOR'];
 export const ROLES_ASIENTOS: Rol[] = ['ADMIN', 'CONTADOR', 'AUXILIAR'];
 export const ROLES_TERCEROS: Rol[] = ['ADMIN', 'CONTADOR', 'AUXILIAR'];
+export const ROLES_CENTROS_COSTO: Rol[] = ['ADMIN', 'CONTADOR'];
 export const ROLES_USUARIOS: Rol[] = ['ADMIN'];
 
 export const MENU_ITEMS: NbMenuItem[] = [
@@ -37,6 +38,11 @@ export const MENU_ITEMS: NbMenuItem[] = [
     title: 'Administración',
     icon: 'settings-2-outline',
     children: [
+      {
+        title: 'Centros de Costo',
+        link: '/pages/centros-costo',
+        data: { roles: ROLES_CENTROS_COSTO },
+      },
       {
         title: 'Usuarios',
         link: '/pages/usuarios',

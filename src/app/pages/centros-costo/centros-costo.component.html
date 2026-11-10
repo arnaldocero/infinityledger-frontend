@@ -1,0 +1,96 @@
+<nb-card>
+  <nb-card-header class="d-flex justify-content-between align-items-center">
+    <div>
+      <h4 class="mb-0">Centros de Costo</h4>
+      <small class="text-muted">Áreas a las que se asignan ingresos y gastos</small>
+    </div>
+    <button nbButton status="primary" size="medium" (click)="abrirModal()">
+      <nb-icon icon="plus-outline"></nb-icon> Nuevo Centro
+    </button>
+  </nb-card-header>
+
+  <nb-card-body [nbSpinner]="cargando" nbSpinnerStatus="primary" nbSpinnerMessage="Cargando centros de costo...">
+    <div *ngIf="errorCarga" class="alert alert-danger d-flex justify-content-between align-items-center" role="alert">
+      <span>No se pudieron cargar los centros de costo: {{ errorCarga }}</span>
+      <button nbButton size="small" status="danger" (click)="cargarCentros()">Reintentar</button>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-hover table-striped align-middle">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Nombre</th>
+            <th class="text-center">Estado</th>
+            <th class="text-center">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let centro of centros">
+            <td class="codigo"><code>{{ centro.codigo }}</code></td>
+            <td>{{ centro.nombre }}</td>
+            <td class="text-center">
+              <span class="badge" [ngClass]="centro.activo ? 'badge-primary' : 'badge-danger'">
+                {{ centro.activo ? 'Activo' : 'Inactivo' }}
+              </span>
+            </td>
+            <td class="text-center">
+              <button nbButton ghost status="info" size="tiny" title="Editar" (click)="abrirModal(centro)">
+                <nb-icon icon="edit-outline"></nb-icon>
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="!cargando && !errorCarga && centros.length === 0">
+            <td colspan="4" class="text-center text-muted py-4">Todavía no hay centros de costo.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </nb-card-body>
+</nb-card>
+
+<!-- Crear / editar centro de costo -->
+<ng-template #dialogCentro let-ref="dialogRef">
+  <nb-card class="dialogo">
+    <nb-card-header class="d-flex justify-content-between align-items-center">
+      <span>{{ centroSeleccionado ? 'Editar Centro de Costo' : 'Nuevo Centro de Costo' }}</span>
+      <button nbButton ghost status="danger" size="tiny" (click)="ref.close()">
+        <nb-icon icon="close-outline"></nb-icon>
+      </button>
+    </nb-card-header>
+
+    <nb-card-body>
+      <form [formGroup]="formCentro" (ngSubmit)="guardar(ref)">
+        <div class="mb-3">
+          <label class="label">Código *</label>
+          <input nbInput fullWidth type="text" formControlName="codigo" placeholder="Ej: CC-300" maxlength="20" />
+          <small class="text-danger" *ngIf="formCentro.get('codigo')?.touched && formCentro.get('codigo')?.invalid">
+            Obligatorio; solo letras, dígitos y guiones.
+          </small>
+        </div>
+
+        <div class="mb-3">
+          <label class="label">Nombre *</label>
+          <input nbInput fullWidth type="text" formControlName="nombre" placeholder="Ej: Ventas" />
+          <small class="text-danger" *ngIf="formCentro.get('nombre')?.touched && formCentro.get('nombre')?.invalid">
+            El nombre es obligatorio (mínimo 3 caracteres).
+          </small>
+        </div>
+
+        <div class="mb-3">
+          <nb-checkbox formControlName="activo">Centro de costo activo</nb-checkbox>
+        </div>
+
+        <div *ngIf="errorGuardar" class="alert alert-danger mb-0" role="alert">{{ errorGuardar }}</div>
+
+        <div class="d-flex justify-content-end mt-3 gap-2">
+          <button nbButton type="button" status="basic" (click)="ref.close()" [disabled]="guardando">Cancelar</button>
+          <button nbButton type="submit" status="success" [disabled]="formCentro.invalid || guardando"
+                  [nbSpinner]="guardando" nbSpinnerSize="small">
+            {{ guardando ? 'Guardando...' : 'Guardar' }}
+          </button>
+        </div>
+      </form>
+    </nb-card-body>
+  </nb-card>
+</ng-template>

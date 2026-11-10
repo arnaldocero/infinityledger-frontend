@@ -2,7 +2,7 @@ import { RouterModule, Routes } from '@angular/router';
 import { NgModule } from '@angular/core';
 import { PagesComponent } from './pages.component';
 import { authGuard, rolGuard } from '../@core/guards/auth.guard';
-import { ROLES_ASIENTOS, ROLES_PLAN_CUENTAS, ROLES_TERCEROS, ROLES_USUARIOS } from './pages-menu';
+import { ROLES_ASIENTOS, ROLES_CENTROS_COSTO, ROLES_PLAN_CUENTAS, ROLES_TERCEROS, ROLES_USUARIOS } from './pages-menu';
 
 const routes: Routes = [{
   path: '',
@@ -30,6 +30,12 @@ const routes: Routes = [{
       canActivate: [rolGuard],
       data: { roles: ROLES_TERCEROS },
       loadChildren: () => import('./terceros/terceros.module').then(m => m.TercerosModule),
+    },
+    {
+      path: 'centros-costo',
+      canActivate: [rolGuard],
+      data: { roles: ROLES_CENTROS_COSTO },
+      loadChildren: () => import('./centros-costo/centros-costo.module').then(m => m.CentrosCostoModule),
     },
     {
       path: 'usuarios',

@@ -1,0 +1,161 @@
+<nb-card>
+  <nb-card-header class="d-flex justify-content-between align-items-center">
+    <div>
+      <h4 class="mb-0">Terceros</h4>
+      <small class="text-muted">Clientes, proveedores, empleados y otros terceros</small>
+    </div>
+    <button nbButton status="primary" size="medium" (click)="abrirModal()">
+      <nb-icon icon="plus-outline"></nb-icon> Nuevo Tercero
+    </button>
+  </nb-card-header>
+
+  <nb-card-body [nbSpinner]="cargando" nbSpinnerStatus="primary" nbSpinnerMessage="Cargando terceros...">
+    <div *ngIf="errorCarga" class="alert alert-danger d-flex justify-content-between align-items-center" role="alert">
+      <span>No se pudieron cargar los terceros: {{ errorCarga }}</span>
+      <button nbButton size="small" status="danger" (click)="cargarTerceros()">Reintentar</button>
+    </div>
+
+    <!-- Filtros -->
+    <div class="row mb-3">
+      <div class="col-md-6 col-12 mb-2">
+        <input nbInput fullWidth type="text" placeholder="Buscar por nombre o documento..."
+               [(ngModel)]="textoBusqueda" (input)="filtrar()" />
+      </div>
+      <div class="col-md-3 col-12 mb-2">
+        <nb-select fullWidth [(selected)]="filtroTipo" (selectedChange)="filtrar()" placeholder="Todos los tipos">
+          <nb-option value="">Todos los tipos</nb-option>
+          <nb-option *ngFor="let tipo of tiposTercero" [value]="tipo.valor">{{ tipo.nombre }}</nb-option>
+        </nb-select>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-hover table-striped align-middle">
+        <thead>
+          <tr>
+            <th>Documento</th>
+            <th>Nombre o razón social</th>
+            <th>Tipo</th>
+            <th>Teléfono</th>
+            <th>Correo</th>
+            <th class="text-center">Estado</th>
+            <th class="text-center">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let tercero of tercerosFiltrados">
+            <td class="documento">
+              <small class="text-muted">{{ tercero.tipoDocumento }}</small>
+              <code>{{ documentoCompleto(tercero) }}</code>
+            </td>
+            <td>{{ tercero.nombreRazonSocial }}</td>
+            <td>
+              <span *ngFor="let tipo of tercero.tiposTercero" class="badge badge-info mr-1">{{ nombreTipoTercero(tipo) }}</span>
+            </td>
+            <td>{{ tercero.telefono || '—' }}</td>
+            <td>{{ tercero.email || '—' }}</td>
+            <td class="text-center">
+              <span class="badge" [ngClass]="tercero.activo ? 'badge-primary' : 'badge-danger'">
+                {{ tercero.activo ? 'Activo' : 'Inactivo' }}
+              </span>
+            </td>
+            <td class="text-center">
+              <button nbButton ghost status="info" size="tiny" title="Editar" (click)="abrirModal(tercero)">
+                <nb-icon icon="edit-outline"></nb-icon>
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="!cargando && !errorCarga && tercerosFiltrados.length === 0">
+            <td colspan="7" class="text-center text-muted py-4">
+              {{ terceros.length === 0 ? 'Todavía no hay terceros registrados.' : 'No hay terceros que coincidan con el filtro.' }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </nb-card-body>
+</nb-card>
+
+<!-- Crear / editar tercero -->
+<ng-template #dialogTercero let-ref="dialogRef">
+  <nb-card class="dialogo">
+    <nb-card-header class="d-flex justify-content-between align-items-center">
+      <span>{{ terceroSeleccionado ? 'Editar Tercero' : 'Nuevo Tercero' }}</span>
+      <button nbButton ghost status="danger" size="tiny" (click)="ref.close()">
+        <nb-icon icon="close-outline"></nb-icon>
+      </button>
+    </nb-card-header>
+
+    <nb-card-body>
+      <form [formGroup]="formTercero" (ngSubmit)="guardar(ref)">
+        <div class="row">
+          <div class="col-md-5 mb-3">
+            <label class="label">Tipo de documento *</label>
+            <nb-select fullWidth formControlName="tipoDocumento">
+              <nb-option *ngFor="let tipo of tiposDocumento" [value]="tipo.valor">{{ tipo.nombre }}</nb-option>
+            </nb-select>
+          </div>
+
+          <div class="col-md-7 mb-3">
+            <label class="label">Número de documento *</label>
+            <div class="d-flex align-items-center">
+              <input nbInput fullWidth type="text" formControlName="numeroDocumento" placeholder="Sin puntos ni guiones" maxlength="20" />
+              <span *ngIf="digitoFormulario !== null" class="dv ml-2" title="Dígito de verificación (DIAN)">- {{ digitoFormulario }}</span>
+            </div>
+            <ng-container *ngIf="formTercero.get('numeroDocumento')?.touched && formTercero.get('numeroDocumento')?.errors as e">
+              <small class="text-danger d-block" *ngIf="e['required']">El número es obligatorio.</small>
+              <small class="text-danger d-block" *ngIf="e['numerico']">Entre 5 y 15 dígitos, sin puntos ni guiones.</small>
+              <small class="text-danger d-block" *ngIf="e['alfanumerico']">Entre 3 y 20 letras o dígitos.</small>
+            </ng-container>
+          </div>
+
+          <div class="col-12 mb-3">
+            <label class="label">Nombre o razón social *</label>
+            <input nbInput fullWidth type="text" formControlName="nombreRazonSocial" />
+            <small class="text-danger" *ngIf="formTercero.get('nombreRazonSocial')?.touched && formTercero.get('nombreRazonSocial')?.invalid">
+              El nombre es obligatorio (mínimo 3 caracteres).
+            </small>
+          </div>
+
+          <div class="col-12 mb-3" formGroupName="tipos">
+            <label class="label d-block">Tipo de tercero *</label>
+            <nb-checkbox *ngFor="let tipo of tiposTercero" [formControlName]="tipo.valor" class="mr-3">{{ tipo.nombre }}</nb-checkbox>
+            <small class="text-danger d-block" *ngIf="formTercero.get('tipos')?.errors?.['sinTipo']">Seleccione al menos un tipo.</small>
+          </div>
+
+          <div class="col-md-6 mb-3">
+            <label class="label">Teléfono</label>
+            <input nbInput fullWidth type="text" formControlName="telefono" />
+          </div>
+
+          <div class="col-md-6 mb-3">
+            <label class="label">Correo</label>
+            <input nbInput fullWidth type="email" formControlName="email" />
+            <small class="text-danger" *ngIf="formTercero.get('email')?.touched && formTercero.get('email')?.invalid">
+              Correo no válido.
+            </small>
+          </div>
+
+          <div class="col-12 mb-3">
+            <label class="label">Dirección</label>
+            <input nbInput fullWidth type="text" formControlName="direccion" />
+          </div>
+
+          <div class="col-12 mb-3">
+            <nb-checkbox formControlName="activo">Tercero activo</nb-checkbox>
+          </div>
+        </div>
+
+        <div *ngIf="errorGuardar" class="alert alert-danger mb-0" role="alert">{{ errorGuardar }}</div>
+
+        <div class="d-flex justify-content-end mt-3 gap-2">
+          <button nbButton type="button" status="basic" (click)="ref.close()" [disabled]="guardando">Cancelar</button>
+          <button nbButton type="submit" status="success" [disabled]="formTercero.invalid || guardando"
+                  [nbSpinner]="guardando" nbSpinnerSize="small">
+            {{ guardando ? 'Guardando...' : 'Guardar' }}
+          </button>
+        </div>
+      </form>
+    </nb-card-body>
+  </nb-card>
+</ng-template>
