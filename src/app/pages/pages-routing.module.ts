@@ -7,6 +7,7 @@ import {
   ROLES_CENTROS_COSTO,
   ROLES_PERIODOS,
   ROLES_PLAN_CUENTAS,
+  ROLES_REPORTES,
   ROLES_TERCEROS,
   ROLES_TIPOS_COMPROBANTE,
   ROLES_USUARIOS,
@@ -56,6 +57,12 @@ const routes: Routes = [{
       canActivate: [rolGuard],
       data: { roles: ROLES_TIPOS_COMPROBANTE },
       loadChildren: () => import('./tipos-comprobante/tipos-comprobante.module').then(m => m.TiposComprobanteModule),
+    },
+    {
+      path: 'reportes',
+      canActivate: [rolGuard],
+      data: { roles: ROLES_REPORTES },
+      loadChildren: () => import('./reportes/reportes.module').then(m => m.ReportesModule),
     },
     {
       path: 'usuarios',

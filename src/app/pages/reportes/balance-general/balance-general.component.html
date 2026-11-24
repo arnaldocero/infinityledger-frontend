@@ -1,0 +1,77 @@
+<nb-card>
+  <nb-card-header>
+    <h4 class="mb-0">Balance General</h4>
+    <small class="text-muted">Situación financiera a una fecha de corte. Solo asientos publicados.</small>
+  </nb-card-header>
+
+  <nb-card-body [nbSpinner]="cargando" nbSpinnerStatus="primary">
+    <div class="filtros no-imprimir">
+      <div><label class="label">Fecha de corte</label><input nbInput type="date" [(ngModel)]="fechaCorte" /></div>
+      <div>
+        <label class="label">Detalle hasta</label>
+        <select class="form-control" [(ngModel)]="nivelMaximo">
+          <option [ngValue]="1">Clase</option>
+          <option [ngValue]="2">Grupo</option>
+          <option [ngValue]="3">Cuenta</option>
+          <option [ngValue]="4">Subcuenta</option>
+        </select>
+      </div>
+      <button nbButton status="primary" (click)="consultar()" [disabled]="cargando || !fechaCorte">Consultar</button>
+      <div class="acciones" *ngIf="datos">
+        <button nbButton ghost status="basic" (click)="imprimir()"><nb-icon icon="printer-outline"></nb-icon> Imprimir</button>
+        <button nbButton ghost status="basic" (click)="exportar()"><nb-icon icon="download-outline"></nb-icon> Exportar CSV</button>
+      </div>
+    </div>
+
+    <div *ngIf="error" class="alert alert-danger" role="alert">{{ error }}</div>
+
+    <ng-container *ngIf="datos">
+      <div class="encabezado-reporte">
+        <h5>Balance general a {{ datos.fechaCorte }}</h5>
+        <span class="badge" [ngClass]="datos.cuadra ? 'badge-success' : 'badge-danger'">
+          {{ datos.cuadra ? 'Activo = Pasivo + Patrimonio' : 'No cuadra: diferencia ' + (datos.diferencia | number:'1.2-2') }}
+        </span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-sm reporte">
+          <tbody>
+            <ng-container *ngFor="let seccion of secciones">
+              <tr class="seccion"><td colspan="3">{{ seccion.nombre }}</td></tr>
+              <tr *ngFor="let fila of seccion.filas" [ngClass]="'nivel-' + fila.nivel">
+                <td class="codigo">{{ fila.codigo }}</td>
+                <td [style.padding-left.px]="8 + (fila.nivel - 1) * 14">{{ fila.nombreCuenta }}</td>
+                <td class="numero" [class.negativo]="fila.valor < 0">{{ fila.valor | number:'1.2-2' }}</td>
+              </tr>
+              <tr *ngIf="seccion.filas.length === 0"><td colspan="3" class="text-muted">Sin saldos.</td></tr>
+              <ng-container *ngIf="seccion === datos.patrimonio">
+                <tr>
+                  <td></td>
+                  <td>Resultado del ejercicio {{ datos.fechaCorte | slice:0:4 }}</td>
+                  <td class="numero" [class.negativo]="datos.resultadoEjercicio < 0">{{ datos.resultadoEjercicio | number:'1.2-2' }}</td>
+                </tr>
+                <tr *ngIf="datos.resultadosAnteriores !== 0">
+                  <td></td>
+                  <td>Resultados de ejercicios anteriores</td>
+                  <td class="numero" [class.negativo]="datos.resultadosAnteriores < 0">{{ datos.resultadosAnteriores | number:'1.2-2' }}</td>
+                </tr>
+              </ng-container>
+              <tr class="subtotal">
+                <td colspan="2">Total {{ seccion.nombre | lowercase }}</td>
+                <td class="numero">{{ (seccion === datos.patrimonio ? datos.totalPatrimonio : seccion.total) | number:'1.2-2' }}</td>
+              </tr>
+            </ng-container>
+          </tbody>
+          <tfoot>
+            <tr class="total">
+              <td colspan="2">Total pasivo + patrimonio</td>
+              <td class="numero">{{ datos.totalPasivoPatrimonio | number:'1.2-2' }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </ng-container>
+
+    <p *ngIf="!datos && !cargando && !error" class="text-muted">Elija la fecha de corte y pulse Consultar.</p>
+  </nb-card-body>
+</nb-card>

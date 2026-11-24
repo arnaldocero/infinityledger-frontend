@@ -6,6 +6,7 @@ import { NbToastrService } from '@nebular/theme';
 import { forkJoin } from 'rxjs';
 
 import { AuthService } from '../../../@core/services/auth.service';
+import { hoy } from '../../../@core/utils/fechas';
 import { mensajeDeError } from '../../../@core/utils/mensaje-error';
 import { CentroCosto, CentrosCostoService } from '../../centros-costo/centros-costo.service';
 import { CuentaContable } from '../../plan-cuentas/models/cuenta.model';
@@ -15,12 +16,6 @@ import { TercerosService } from '../../terceros/terceros.service';
 import { TipoComprobante, TiposComprobanteService } from '../../tipos-comprobante/tipos-comprobante.service';
 import { AsientosService } from '../asientos.service';
 import { Asiento, ESTADOS_ASIENTO, GuardarAsiento, LineaAsiento, redondear } from '../models/asiento.model';
-
-/** Fecha local de hoy en formato 'aaaa-mm-dd' (el que usan el input date y la API). */
-function hoy(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
 
 @Component({
   selector: 'ngx-asiento-editor',

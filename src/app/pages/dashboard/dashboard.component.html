@@ -1,0 +1,145 @@
+<div class="encabezado d-flex justify-content-between align-items-center flex-wrap mb-3">
+  <div>
+    <h4 class="mb-0">Bienvenido{{ usuario ? ', ' + usuario.nombre : '' }}</h4>
+    <small class="text-muted" *ngIf="datos">
+      {{ datos.fecha }} ·
+      <ng-container *ngIf="datos.periodo; else sinPeriodo">
+        Período {{ datos.periodo }}
+        <span class="badge" [ngClass]="datos.estadoPeriodo === 'CERRADO' ? 'badge-secondary' : 'badge-success'">
+          {{ datos.estadoPeriodo === 'CERRADO' ? 'cerrado' : 'abierto' }}
+        </span>
+      </ng-container>
+      <ng-template #sinPeriodo><span class="text-danger">No hay período fiscal para la fecha de hoy</span></ng-template>
+    </small>
+  </div>
+  <button nbButton ghost status="basic" size="small" (click)="cargar()" [disabled]="cargando">
+    <nb-icon icon="refresh-outline"></nb-icon> Actualizar
+  </button>
+</div>
+
+<div *ngIf="error" class="alert alert-danger d-flex justify-content-between align-items-center" role="alert">
+  <span>No se pudieron cargar los indicadores: {{ error }}</span>
+  <button nbButton size="small" status="danger" (click)="cargar()">Reintentar</button>
+</div>
+
+<div [nbSpinner]="cargando" nbSpinnerStatus="primary">
+  <ng-container *ngIf="datos">
+    <!-- Indicadores -->
+    <div class="row">
+      <div class="col-xl-4 col-md-6 col-12">
+        <nb-card class="indicador">
+          <nb-card-body>
+            <span class="titulo"><nb-icon icon="credit-card-outline"></nb-icon> Efectivo y bancos</span>
+            <span class="valor">{{ datos.efectivo | number:'1.0-0' }}</span>
+            <small class="text-muted">Saldo del grupo 11 a hoy</small>
+          </nb-card-body>
+        </nb-card>
+      </div>
+      <div class="col-xl-4 col-md-6 col-12">
+        <nb-card class="indicador">
+          <nb-card-body>
+            <span class="titulo"><nb-icon icon="arrow-circle-down-outline"></nb-icon> Cuentas por cobrar</span>
+            <span class="valor">{{ datos.cuentasPorCobrar | number:'1.0-0' }}</span>
+            <small class="text-muted">Grupo 13 (deudores)</small>
+          </nb-card-body>
+        </nb-card>
+      </div>
+      <div class="col-xl-4 col-md-6 col-12">
+        <nb-card class="indicador">
+          <nb-card-body>
+            <span class="titulo"><nb-icon icon="arrow-circle-up-outline"></nb-icon> Cuentas por pagar</span>
+            <span class="valor">{{ datos.cuentasPorPagar | number:'1.0-0' }}</span>
+            <small class="text-muted">Grupos 22 y 23 (proveedores y otras)</small>
+          </nb-card-body>
+        </nb-card>
+      </div>
+      <div class="col-xl-4 col-md-6 col-12">
+        <nb-card class="indicador ingresos">
+          <nb-card-body>
+            <span class="titulo"><nb-icon icon="trending-up-outline"></nb-icon> Ingresos del año</span>
+            <span class="valor">{{ datos.ingresosAnio | number:'1.0-0' }}</span>
+          </nb-card-body>
+        </nb-card>
+      </div>
+      <div class="col-xl-4 col-md-6 col-12">
+        <nb-card class="indicador gastos">
+          <nb-card-body>
+            <span class="titulo"><nb-icon icon="trending-down-outline"></nb-icon> Costos y gastos del año</span>
+            <span class="valor">{{ datos.gastosAnio | number:'1.0-0' }}</span>
+          </nb-card-body>
+        </nb-card>
+      </div>
+      <div class="col-xl-4 col-md-6 col-12">
+        <nb-card class="indicador" [class.perdida]="datos.utilidadAnio < 0">
+          <nb-card-body>
+            <span class="titulo"><nb-icon icon="pie-chart-outline"></nb-icon> {{ datos.utilidadAnio >= 0 ? 'Utilidad' : 'Pérdida' }} del año</span>
+            <span class="valor">{{ datos.utilidadAnio | number:'1.0-0' }}</span>
+          </nb-card-body>
+        </nb-card>
+      </div>
+    </div>
+
+    <div class="row">
+      <!-- Ingresos y gastos por mes -->
+      <div class="col-xl-7 col-12">
+        <nb-card>
+          <nb-card-header>Ingresos y gastos por mes</nb-card-header>
+          <nb-card-body>
+            <div class="grafica" *ngIf="maximoMensual > 0; else sinMovimientos">
+              <div class="mes" *ngFor="let punto of datos.meses">
+                <div class="barras">
+                  <div class="barra ingreso" [style.height.%]="alto(punto.ingresos)"
+                       [title]="mesesCortos[punto.mes - 1] + ' · ingresos ' + (punto.ingresos | number:'1.0-0')"></div>
+                  <div class="barra gasto" [style.height.%]="alto(punto.gastos)"
+                       [title]="mesesCortos[punto.mes - 1] + ' · gastos ' + (punto.gastos | number:'1.0-0')"></div>
+                </div>
+                <span class="etiqueta">{{ mesesCortos[punto.mes - 1] }}</span>
+              </div>
+            </div>
+            <div class="leyenda" *ngIf="maximoMensual > 0">
+              <span><i class="muestra ingreso"></i> Ingresos</span>
+              <span><i class="muestra gasto"></i> Costos y gastos</span>
+            </div>
+            <ng-template #sinMovimientos>
+              <p class="text-muted mb-0">Todavía no hay ingresos ni gastos publicados este año.</p>
+            </ng-template>
+          </nb-card-body>
+        </nb-card>
+      </div>
+
+      <!-- Actividad -->
+      <div class="col-xl-5 col-12">
+        <nb-card>
+          <nb-card-header class="d-flex justify-content-between align-items-center">
+            <span>Actividad</span>
+            <a nbButton ghost size="tiny" status="primary" routerLink="/pages/asientos">Ver asientos</a>
+          </nb-card-header>
+          <nb-card-body>
+            <div class="d-flex justify-content-around text-center mb-3">
+              <div>
+                <span class="valor-pequeno">{{ datos.asientosPublicadosMes }}</span>
+                <small class="d-block text-muted">publicados este mes</small>
+              </div>
+              <div>
+                <span class="valor-pequeno" [class.text-warning]="datos.borradores > 0">{{ datos.borradores }}</span>
+                <small class="d-block text-muted">borradores pendientes</small>
+              </div>
+            </div>
+
+            <table class="table table-sm mb-0" *ngIf="datos.ultimosAsientos.length; else sinAsientos">
+              <tbody>
+                <tr *ngFor="let asiento of datos.ultimosAsientos">
+                  <td class="nowrap"><a [routerLink]="['/pages/asientos', asiento.idAsiento]"><code>{{ asiento.comprobante }}</code></a></td>
+                  <td class="concepto">{{ asiento.conceptoGeneral }}</td>
+                  <td class="text-right nowrap">{{ asiento.totalDebe | number:'1.0-0' }}</td>
+                  <td><span class="badge" [ngClass]="estado(asiento.estado).clase">{{ estado(asiento.estado).nombre }}</span></td>
+                </tr>
+              </tbody>
+            </table>
+            <ng-template #sinAsientos><p class="text-muted mb-0">Todavía no hay asientos registrados.</p></ng-template>
+          </nb-card-body>
+        </nb-card>
+      </div>
+    </div>
+  </ng-container>
+</div>

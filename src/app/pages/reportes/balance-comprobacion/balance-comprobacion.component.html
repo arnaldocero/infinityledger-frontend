@@ -1,0 +1,77 @@
+<nb-card>
+  <nb-card-header>
+    <h4 class="mb-0">Balance de Comprobación</h4>
+    <small class="text-muted">Saldo anterior, movimientos y saldo final de cada cuenta. Solo asientos publicados.</small>
+  </nb-card-header>
+
+  <nb-card-body [nbSpinner]="cargando" nbSpinnerStatus="primary">
+    <div class="filtros no-imprimir">
+      <div><label class="label">Desde</label><input nbInput type="date" [(ngModel)]="desde" /></div>
+      <div><label class="label">Hasta</label><input nbInput type="date" [(ngModel)]="hasta" /></div>
+      <div>
+        <label class="label">Detalle hasta</label>
+        <select class="form-control" [(ngModel)]="nivelMaximo">
+          <option [ngValue]="1">Clase</option>
+          <option [ngValue]="2">Grupo</option>
+          <option [ngValue]="3">Cuenta</option>
+          <option [ngValue]="4">Subcuenta</option>
+        </select>
+      </div>
+      <button nbButton status="primary" (click)="consultar()" [disabled]="cargando || !desde || !hasta">Consultar</button>
+      <div class="acciones" *ngIf="datos">
+        <button nbButton ghost status="basic" (click)="imprimir()"><nb-icon icon="printer-outline"></nb-icon> Imprimir</button>
+        <button nbButton ghost status="basic" (click)="exportar()"><nb-icon icon="download-outline"></nb-icon> Exportar CSV</button>
+      </div>
+    </div>
+
+    <div *ngIf="error" class="alert alert-danger" role="alert">{{ error }}</div>
+
+    <ng-container *ngIf="datos">
+      <div class="encabezado-reporte">
+        <h5>Balance de comprobación del {{ datos.desde }} al {{ datos.hasta }}</h5>
+        <span class="badge" [ngClass]="datos.cuadra ? 'badge-success' : 'badge-danger'">
+          {{ datos.cuadra ? 'Débitos y créditos cuadran' : 'Débitos y créditos NO cuadran' }}
+        </span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-sm table-striped reporte">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Cuenta</th>
+              <th class="numero">Saldo inicial</th>
+              <th class="numero">Débitos</th>
+              <th class="numero">Créditos</th>
+              <th class="numero">Saldo final</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let fila of datos.filas" [ngClass]="'nivel-' + fila.nivel">
+              <td class="codigo">{{ fila.codigo }}</td>
+              <td [style.padding-left.px]="8 + (fila.nivel - 1) * 14">{{ fila.nombreCuenta }}</td>
+              <td class="numero" [class.negativo]="fila.saldoInicial < 0">{{ fila.saldoInicial | number:'1.2-2' }}</td>
+              <td class="numero">{{ fila.debitos | number:'1.2-2' }}</td>
+              <td class="numero">{{ fila.creditos | number:'1.2-2' }}</td>
+              <td class="numero" [class.negativo]="fila.saldoFinal < 0">{{ fila.saldoFinal | number:'1.2-2' }}</td>
+            </tr>
+            <tr *ngIf="datos.filas.length === 0">
+              <td colspan="6" class="text-center text-muted py-4">No hay saldos ni movimientos publicados en este rango.</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr class="total">
+              <td colspan="3">Totales (cuentas auxiliares)</td>
+              <td class="numero">{{ datos.totalDebitos | number:'1.2-2' }}</td>
+              <td class="numero">{{ datos.totalCreditos | number:'1.2-2' }}</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <small class="text-muted">Los saldos tienen el signo de la naturaleza de la cuenta; en rojo, saldo contrario.</small>
+    </ng-container>
+
+    <p *ngIf="!datos && !cargando && !error" class="text-muted">Elija el rango y pulse Consultar.</p>
+  </nb-card-body>
+</nb-card>

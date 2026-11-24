@@ -1,0 +1,73 @@
+<nb-card>
+  <nb-card-header>
+    <h4 class="mb-0">Saldos Mensuales</h4>
+    <small class="text-muted">
+      Saldos de cada cuenta auxiliar en un período. Al cerrar el período quedan guardados; mientras esté abierto son provisionales.
+    </small>
+  </nb-card-header>
+
+  <nb-card-body [nbSpinner]="cargando" nbSpinnerStatus="primary">
+    <div class="filtros no-imprimir">
+      <div>
+        <label class="label">Período</label>
+        <select class="form-control" [(ngModel)]="idPeriodo">
+          <option *ngFor="let periodo of periodos" [ngValue]="periodo.idPeriodo">
+            {{ nombrePeriodo(periodo) }} ({{ periodo.estado === 'CERRADO' ? 'cerrado' : 'abierto' }})
+          </option>
+        </select>
+      </div>
+      <button nbButton status="primary" (click)="consultar()" [disabled]="cargando || !idPeriodo">Consultar</button>
+      <div class="acciones" *ngIf="datos">
+        <button nbButton ghost status="basic" (click)="imprimir()"><nb-icon icon="printer-outline"></nb-icon> Imprimir</button>
+        <button nbButton ghost status="basic" (click)="exportar()"><nb-icon icon="download-outline"></nb-icon> Exportar CSV</button>
+      </div>
+    </div>
+
+    <div *ngIf="error" class="alert alert-danger" role="alert">{{ error }}</div>
+
+    <ng-container *ngIf="datos">
+      <div class="encabezado-reporte">
+        <h5>Saldos de {{ datos.periodo }}</h5>
+        <span class="badge" [ngClass]="datos.definitivo ? 'badge-success' : 'badge-warning'">
+          {{ datos.definitivo ? 'Definitivos (período cerrado)' : 'Provisionales (período abierto)' }}
+        </span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-sm table-striped reporte">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Cuenta</th>
+              <th class="numero">Saldo inicial</th>
+              <th class="numero">Débitos</th>
+              <th class="numero">Créditos</th>
+              <th class="numero">Saldo final</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let fila of datos.filas">
+              <td class="codigo">{{ fila.codigo }}</td>
+              <td>{{ fila.nombreCuenta }}</td>
+              <td class="numero" [class.negativo]="fila.saldoInicial < 0">{{ fila.saldoInicial | number:'1.2-2' }}</td>
+              <td class="numero">{{ fila.debitos | number:'1.2-2' }}</td>
+              <td class="numero">{{ fila.creditos | number:'1.2-2' }}</td>
+              <td class="numero" [class.negativo]="fila.saldoFinal < 0">{{ fila.saldoFinal | number:'1.2-2' }}</td>
+            </tr>
+            <tr *ngIf="datos.filas.length === 0">
+              <td colspan="6" class="text-center text-muted py-4">Ninguna cuenta tiene saldo ni movimientos en este período.</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr class="total">
+              <td colspan="3">Totales</td>
+              <td class="numero">{{ datos.totalDebitos | number:'1.2-2' }}</td>
+              <td class="numero">{{ datos.totalCreditos | number:'1.2-2' }}</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </ng-container>
+  </nb-card-body>
+</nb-card>

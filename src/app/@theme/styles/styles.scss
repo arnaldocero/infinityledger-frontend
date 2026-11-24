@@ -29,3 +29,22 @@
 
   @include nb-overrides();
 };
+
+// Al imprimir un reporte solo sale su contenido: sin menú, encabezado, pie ni botones.
+@media print {
+  nb-layout-header,
+  nb-sidebar,
+  nb-layout-footer,
+  .no-imprimir {
+    display: none !important;
+  }
+
+  nb-layout .layout .layout-container .content .columns nb-layout-column {
+    padding: 0 !important;
+  }
+
+  nb-card {
+    box-shadow: none !important;
+    border: none !important;
+  }
+}

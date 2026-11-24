@@ -1,0 +1,77 @@
+// Estilos comunes de las pantallas de reportes.
+
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.5rem 1rem;
+  margin-bottom: 1rem;
+
+  label {
+    display: block;
+  }
+
+  input[type='date'] {
+    min-width: 10rem;
+  }
+}
+
+.acciones {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.encabezado-reporte {
+  margin-bottom: 1rem;
+
+  h5 {
+    margin-bottom: 0;
+  }
+}
+
+table.reporte {
+  td,
+  th {
+    padding: 0.35rem 0.5rem;
+  }
+
+  .numero {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .codigo {
+    white-space: nowrap;
+    font-family: monospace;
+  }
+
+  .negativo {
+    color: #c0392b;
+  }
+
+  tr.nivel-1 td {
+    font-weight: 700;
+  }
+
+  tr.nivel-2 td {
+    font-weight: 600;
+  }
+
+  tr.total td,
+  tr.subtotal td {
+    font-weight: 700;
+    border-top: 2px solid rgba(0, 0, 0, 0.2);
+  }
+
+  tr.seccion td {
+    font-weight: 700;
+    text-transform: uppercase;
+    background: rgba(0, 0, 0, 0.04);
+  }
+
+  tr.asiento td {
+    background: rgba(51, 102, 255, 0.06);
+    font-weight: 600;
+  }
+}

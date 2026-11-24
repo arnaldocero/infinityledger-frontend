@@ -1,0 +1,67 @@
+<nb-card>
+  <nb-card-header>
+    <h4 class="mb-0">Estado de Resultados</h4>
+    <small class="text-muted">Ingresos menos costos y gastos del rango. Solo asientos publicados.</small>
+  </nb-card-header>
+
+  <nb-card-body [nbSpinner]="cargando" nbSpinnerStatus="primary">
+    <div class="filtros no-imprimir">
+      <div><label class="label">Desde</label><input nbInput type="date" [(ngModel)]="desde" /></div>
+      <div><label class="label">Hasta</label><input nbInput type="date" [(ngModel)]="hasta" /></div>
+      <div>
+        <label class="label">Detalle hasta</label>
+        <select class="form-control" [(ngModel)]="nivelMaximo">
+          <option [ngValue]="1">Clase</option>
+          <option [ngValue]="2">Grupo</option>
+          <option [ngValue]="3">Cuenta</option>
+          <option [ngValue]="4">Subcuenta</option>
+        </select>
+      </div>
+      <button nbButton status="primary" (click)="consultar()" [disabled]="cargando || !desde || !hasta">Consultar</button>
+      <div class="acciones" *ngIf="datos">
+        <button nbButton ghost status="basic" (click)="imprimir()"><nb-icon icon="printer-outline"></nb-icon> Imprimir</button>
+        <button nbButton ghost status="basic" (click)="exportar()"><nb-icon icon="download-outline"></nb-icon> Exportar CSV</button>
+      </div>
+    </div>
+
+    <div *ngIf="error" class="alert alert-danger" role="alert">{{ error }}</div>
+
+    <ng-container *ngIf="datos">
+      <div class="encabezado-reporte">
+        <h5>Estado de resultados del {{ datos.desde }} al {{ datos.hasta }}</h5>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-sm reporte">
+          <tbody>
+            <ng-container *ngFor="let seccion of secciones">
+              <tr class="seccion"><td colspan="3">{{ seccion.nombre }}</td></tr>
+              <tr *ngFor="let fila of seccion.filas" [ngClass]="'nivel-' + fila.nivel">
+                <td class="codigo">{{ fila.codigo }}</td>
+                <td [style.padding-left.px]="8 + (fila.nivel - 1) * 14">{{ fila.nombreCuenta }}</td>
+                <td class="numero" [class.negativo]="fila.valor < 0">{{ fila.valor | number:'1.2-2' }}</td>
+              </tr>
+              <tr *ngIf="seccion.filas.length === 0"><td colspan="3" class="text-muted">Sin movimientos.</td></tr>
+              <tr class="subtotal">
+                <td colspan="2">Total {{ seccion.nombre | lowercase }}</td>
+                <td class="numero">{{ seccion.total | number:'1.2-2' }}</td>
+              </tr>
+            </ng-container>
+          </tbody>
+          <tfoot>
+            <tr class="total">
+              <td colspan="2">Utilidad bruta (ingresos − costos)</td>
+              <td class="numero" [class.negativo]="datos.utilidadBruta < 0">{{ datos.utilidadBruta | number:'1.2-2' }}</td>
+            </tr>
+            <tr class="total">
+              <td colspan="2">{{ datos.utilidadNeta >= 0 ? 'Utilidad neta' : 'Pérdida neta' }}</td>
+              <td class="numero" [class.negativo]="datos.utilidadNeta < 0">{{ datos.utilidadNeta | number:'1.2-2' }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </ng-container>
+
+    <p *ngIf="!datos && !cargando && !error" class="text-muted">Elija el rango y pulse Consultar.</p>
+  </nb-card-body>
+</nb-card>

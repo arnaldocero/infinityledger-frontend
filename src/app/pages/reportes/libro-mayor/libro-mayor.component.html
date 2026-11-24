@@ -1,0 +1,83 @@
+<nb-card>
+  <nb-card-header>
+    <h4 class="mb-0">Libro Mayor</h4>
+    <small class="text-muted">Movimientos de una cuenta con su saldo acumulado. Una cuenta mayor incluye sus subcuentas.</small>
+  </nb-card-header>
+
+  <nb-card-body [nbSpinner]="cargando" nbSpinnerStatus="primary">
+    <datalist id="mayor-cuentas">
+      <option *ngFor="let cuenta of cuentas" [value]="etiqueta(cuenta)"></option>
+    </datalist>
+
+    <div class="filtros no-imprimir">
+      <div class="cuenta">
+        <label class="label">Cuenta</label>
+        <input nbInput type="text" list="mayor-cuentas" [(ngModel)]="textoCuenta" placeholder="Código o nombre" size="40" />
+      </div>
+      <div><label class="label">Desde</label><input nbInput type="date" [(ngModel)]="desde" /></div>
+      <div><label class="label">Hasta</label><input nbInput type="date" [(ngModel)]="hasta" /></div>
+      <button nbButton status="primary" (click)="consultar()" [disabled]="cargando || !desde || !hasta">Consultar</button>
+      <div class="acciones" *ngIf="datos">
+        <button nbButton ghost status="basic" (click)="imprimir()"><nb-icon icon="printer-outline"></nb-icon> Imprimir</button>
+        <button nbButton ghost status="basic" (click)="exportar()"><nb-icon icon="download-outline"></nb-icon> Exportar CSV</button>
+      </div>
+    </div>
+
+    <div *ngIf="error" class="alert alert-danger" role="alert">{{ error }}</div>
+
+    <ng-container *ngIf="datos">
+      <div class="encabezado-reporte">
+        <h5><span class="codigo">{{ datos.codigo }}</span> {{ datos.nombreCuenta }}</h5>
+        <small class="text-muted">
+          Del {{ datos.desde }} al {{ datos.hasta }} · Naturaleza {{ datos.naturaleza === 'DEBITO' ? 'débito' : 'crédito' }}
+        </small>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-sm table-striped reporte">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Comprobante</th>
+              <th>Concepto</th>
+              <th>Subcuenta</th>
+              <th>Tercero</th>
+              <th class="numero">Débito</th>
+              <th class="numero">Crédito</th>
+              <th class="numero">Saldo</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="subtotal">
+              <td colspan="7">Saldo inicial</td>
+              <td class="numero" [class.negativo]="datos.saldoInicial < 0">{{ datos.saldoInicial | number:'1.2-2' }}</td>
+            </tr>
+            <tr *ngFor="let mov of datos.movimientos">
+              <td class="codigo">{{ mov.fecha }}</td>
+              <td class="codigo">{{ mov.comprobante }}</td>
+              <td>{{ mov.concepto }}</td>
+              <td class="codigo">{{ mov.codigoCuenta }}</td>
+              <td>{{ mov.nombreTercero || '' }}</td>
+              <td class="numero">{{ mov.debe ? (mov.debe | number:'1.2-2') : '' }}</td>
+              <td class="numero">{{ mov.haber ? (mov.haber | number:'1.2-2') : '' }}</td>
+              <td class="numero" [class.negativo]="mov.saldo < 0">{{ mov.saldo | number:'1.2-2' }}</td>
+            </tr>
+            <tr *ngIf="datos.movimientos.length === 0">
+              <td colspan="8" class="text-center text-muted py-3">Sin movimientos publicados en este rango.</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr class="total">
+              <td colspan="5">Totales y saldo final</td>
+              <td class="numero">{{ datos.totalDebe | number:'1.2-2' }}</td>
+              <td class="numero">{{ datos.totalHaber | number:'1.2-2' }}</td>
+              <td class="numero" [class.negativo]="datos.saldoFinal < 0">{{ datos.saldoFinal | number:'1.2-2' }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </ng-container>
+
+    <p *ngIf="!datos && !cargando && !error" class="text-muted">Elija la cuenta y el rango, y pulse Consultar.</p>
+  </nb-card-body>
+</nb-card>

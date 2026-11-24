@@ -9,6 +9,7 @@ export const ROLES_TERCEROS: Rol[] = ['ADMIN', 'CONTADOR', 'AUXILIAR'];
 export const ROLES_CENTROS_COSTO: Rol[] = ['ADMIN', 'CONTADOR'];
 export const ROLES_PERIODOS: Rol[] = ['ADMIN', 'CONTADOR'];
 export const ROLES_TIPOS_COMPROBANTE: Rol[] = ['ADMIN', 'CONTADOR'];
+export const ROLES_REPORTES: Rol[] = ['ADMIN', 'CONTADOR', 'AUDITOR'];
 export const ROLES_USUARIOS: Rol[] = ['ADMIN'];
 
 export const MENU_ITEMS: NbMenuItem[] = [
@@ -35,6 +36,19 @@ export const MENU_ITEMS: NbMenuItem[] = [
     icon: 'people-outline',
     link: '/pages/terceros',
     data: { roles: ROLES_TERCEROS },
+  },
+  {
+    title: 'Reportes',
+    icon: 'bar-chart-outline',
+    data: { roles: ROLES_REPORTES },
+    children: [
+      { title: 'Libro Diario', link: '/pages/reportes/libro-diario' },
+      { title: 'Libro Mayor', link: '/pages/reportes/libro-mayor' },
+      { title: 'Balance de Comprobación', link: '/pages/reportes/balance-comprobacion' },
+      { title: 'Estado de Resultados', link: '/pages/reportes/estado-resultados' },
+      { title: 'Balance General', link: '/pages/reportes/balance-general' },
+      { title: 'Saldos Mensuales', link: '/pages/reportes/saldos-mensuales' },
+    ],
   },
   {
     title: 'Administración',
